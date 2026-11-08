@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dentro o Fuori – tiro o cross, in porta o no</title>
+<style>
+:root{--bg:#faf9f5;--card:#fff;--c1:#f3f2ee;--tx:#1f1e1d;--tx2:#5f5e5a;--mut:#888780;--bd:rgba(0,0,0,.12);--acc:#185FA5;--accb:#E6F1FB;--okb:#EAF3DE;--okt:#27500A;--kob:#FCEBEB;--kot:#791F1F;--wb:#FAEEDA;--wt:#633806}
+@media (prefers-color-scheme:dark){:root{--bg:#1f1e1d;--card:#262624;--c1:#30302e;--tx:#f1efe8;--tx2:#b4b2a9;--mut:#888780;--bd:rgba(255,255,255,.14);--acc:#85B7EB;--accb:#0C447C;--okb:#27500A;--okt:#C0DD97;--kob:#791F1F;--kot:#F7C1C1;--wb:#633806;--wt:#FAC775}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,sans-serif;line-height:1.5;font-size:15px}
+main{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:22px;font-weight:500;margin:0}
+h2{font-size:17px;font-weight:500;margin:0 0 10px}
+.sub{font-size:13px;color:var(--tx2);margin:2px 0 16px}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+button,select,input{font:inherit;font-size:14px;color:var(--tx)}
+button{padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--card);cursor:pointer}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.on{border:2px solid var(--acc);background:var(--accb)}
+button:active{transform:scale(.98)}
+select,input[type=number],input[type=text]{padding:7px 9px;border-radius:8px;border:1px solid var(--bd);background:var(--card);min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.hint{font-size:13px;color:var(--tx2);margin:6px 0}
+.small{font-size:12px;color:var(--mut)}
+.fr{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--bd)}
+.fr:first-of-type{border-top:0}
+.fr img{width:72px;height:48px;object-fit:cover;border-radius:6px;background:var(--c1)}
+.fr.sel{background:var(--accb);margin:0 -14px;padding:10px 14px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--c1);color:var(--tx2)}
+.chip.ok{background:var(--okb);color:var(--okt)} .chip.no{background:var(--wb);color:var(--wt)}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px}
+#wrap{overflow:auto;max-height:62vh;border:1px solid var(--bd);border-radius:8px;background:#000;touch-action:pan-x pan-y}
+#cv{display:block;cursor:crosshair}
+.pts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pts button{font-size:12px;padding:4px 8px}
+.nud{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,36px);gap:4px}
+.nud button{padding:0}
+.loupe{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#lp{width:150px;height:150px;border-radius:8px;border:1px solid var(--bd);background:#000}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--c1);border-radius:10px;padding:12px}
+.card h3{font-size:14px;font-weight:500;margin:0 0 6px}
+.big{font-size:22px;font-weight:500}
+.verd{padding:8px 12px;border-radius:8px;margin:8px 0;font-size:14px}
+.v-ok{background:var(--okb);color:var(--okt)} .v-ko{background:var(--kob);color:var(--kot)} .v-w{background:var(--wb);color:var(--wt)}
+canvas.res{width:100%;border:1px solid var(--bd);border-radius:8px;background:var(--card);display:block;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px} td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:left;font-weight:400}
+th{color:var(--tx2)}
+.prog{height:6px;background:var(--c1);border-radius:3px;overflow:hidden;margin-top:8px}
+.prog div{height:100%;width:0;background:var(--acc)}
+details{margin-top:8px} summary{cursor:pointer;color:var(--tx2);font-size:14px}
+ol{padding-left:20px;margin:6px 0} li{margin:3px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Dentro o Fuori</h1>
+<p class="sub">Gol o autogol? Per le linee guida della Lega Serie A conta se il tiro, prima della deviazione, era diretto nello specchio della porta. Dentro o Fuori lo ricostruisce dai fotogrammi TV, distingue un tiro da un cross e ti dice quanto è sicuro il risultato. La decisione ufficiale resta della Lega.</p>
+
+<section>
+<details>
+<summary>Come si usa</summary>
+<ol class="hint">
+<li>Carica i fotogrammi in ordine di tempo (screenshot dal video, meglio se a schermo intero).</li>
+<li>Per ogni fotogramma scegli il ruolo: il calcio, il pallone in volo, il momento della deviazione, il pallone dopo la deviazione.</li>
+<li>Se conosci i tempi (es. avanzando fotogramma per fotogramma: a 25 fps ogni fotogramma è 0,04 s), scrivili: rendono il calcolo molto più preciso.</li>
+<li>Calibra il campo: tocca almeno 4 punti noti (meglio 6 o più, sparsi): pali, angoli delle aree, dischetto, bandierina. Sinistra e destra sono quelle di chi attacca verso quella porta.</li>
+<li>Aggiungi un riferimento di altezza: tocca i piedi e poi la testa di un giocatore (altezza nota) o la base di un palo e la traversa (2,44 m).</li>
+<li>Tocca il pallone. Se vedi l'ombra o il punto a terra sotto il pallone, segnalo: è il dato più prezioso.</li>
+<li>Premi "Calcola". Il risultato ripete il calcolo molte volte spostando i tuoi tocchi di qualche pixel: così vedi quanto è affidabile.</li>
+</ol>
+<p class="hint">Regola d'oro: con un solo fotogramma in volo la direzione non è determinabile. Servono almeno 2 fotogrammi in volo per tratto, meglio 5 o più, oppure l'ombra del pallone.</p>
+</details>
+</section>
+
+<section>
+<h2>1. Fotogrammi</h2>
+<div class="row">
+<label class="pri" style="padding:8px 12px;border-radius:8px;background:var(--acc);color:#fff;cursor:pointer">Aggiungi fotogrammi<input id="fileIn" type="file" accept="image/*" multiple style="display:none"></label>
+<button id="exp">Esporta progetto</button>
+<label style="padding:8px 12px;border-radius:8px;border:1px solid var(--bd);cursor:pointer">Importa<input id="impIn" type="file" accept=".json,application/json" style="display:none"></label>
+<button id="clr">Nuovo</button>
+</div>
+<div id="flist"></div>
+<p id="saveMsg" class="small"></p>
+</section>
+
+<section id="ed" style="display:none">
+<h2 id="edT">2. Segna i punti</h2>
+<div class="tools" id="tools">
+<button data-t="lm">Campo</button><button data-t="ball">Pallone</button><button data-t="ground">Punto a terra</button><button data-t="ref">Altezza</button><button data-t="pl">Giocatore</button>
+</div>
+<div class="row" id="ctx"></div>
+<p class="hint" id="thint"></p>
+<div class="row"><button id="zo">−</button><span id="zl" class="small">Zoom 1×</span><button id="zi">+</button>
+<label class="small"><input type="checkbox" id="ovl" checked> Linee del campo</label>
+<button id="cpy">Copia calibrazione dal precedente</button></div>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<p class="small" id="calInfo"></p>
+<div class="pts" id="pts"></div>
+<div class="loupe" style="margin-top:10px">
+<canvas id="lp" width="150" height="150"></canvas>
+<div><div class="nud">
+<span></span><button data-d="0,-1" aria-label="Su">↑</button><span></span>
+<button data-d="-1,0" aria-label="Sinistra">←</button><button id="del" aria-label="Elimina punto">✕</button><button data-d="1,0" aria-label="Destra">→</button>
+<span></span><button data-d="0,1" aria-label="Giù">↓</button><span></span></div>
+<p class="small" style="margin:6px 0 0;max-width:180px">Le frecce spostano il punto selezionato di 1 pixel. ✕ lo elimina.</p></div>
+</div>
+</section>
+
+<section>
+<h2>3. Analisi</h2>
+<div class="grid2">
+<label class="small">Incertezza dei tocchi (pixel)<br><input type="number" id="sg" value="2" step="0.5" min="0" max="10" style="width:100%"></label>
+<label class="small">Simulazioni<br><input type="number" id="runs" value="100" step="10" min="20" max="400" style="width:100%"></label>
+<label class="small">Velocità ipotizzata tiro (m/s), se mancano i tempi<br><input type="number" id="vpre" value="25" step="1" style="width:100%"></label>
+<label class="small">Velocità ipotizzata dopo deviazione (m/s)<br><input type="number" id="vpost" value="20" step="1" style="width:100%"></label>
+<label class="small">Larghezza del campo (m)<br><input type="number" id="pw" value="68" step="1" style="width:100%"></label>
+<label class="small" style="align-self:end"><input type="checkbox" id="fix" checked> Stessa telecamera in tutti i fotogrammi (consigliato per la telecamera principale: più preciso)</label>
+</div>
+<div class="row"><button class="pri" id="run">Calcola</button><span id="pmsg" class="small"></span></div>
+<div class="prog"><div id="pbar"></div></div>
+<div id="out"></div>
+</section>
+<p class="small">Modello: calibrazione del campo da punti noti, camera stimata dai fotogrammi, traiettoria balistica senza attrito né effetto. I risultati sono stime: leggi sempre il margine di errore.</p>
+</main>
+<script>
+const G = 9.81, POST = 3.66, BAR = 2.44;
+function landmarks(W) {
+  const hw = W / 2;
+  return {
+    palo_sx: ['Palo sinistro (base)', 0, POST], palo_dx: ['Palo destro (base)', 0, -POST],
+    ap_fondo_sx: ['Area piccola, linea di fondo sx', 0, 9.16], ap_fondo_dx: ['Area piccola, linea di fondo dx', 0, -9.16],
+    ap_ang_sx: ['Area piccola, angolo sx', 5.5, 9.16], ap_ang_dx: ['Area piccola, angolo dx', 5.5, -9.16],
+    ag_fondo_sx: ['Area grande, linea di fondo sx', 0, 20.16], ag_fondo_dx: ['Area grande, linea di fondo dx', 0, -20.16],
+    ag_ang_sx: ['Area grande, angolo sx', 16.5, 20.16], ag_ang_dx: ['Area grande, angolo dx', 16.5, -20.16],
+    lun_sx: ['Lunetta, incrocio sx', 16.5, 7.31], lun_dx: ['Lunetta, incrocio dx', 16.5, -7.31],
+    lun_top: ['Lunetta, punto più esterno', 20.15, 0],
+    dischetto: ['Dischetto del rigore', 11, 0],
+    band_sx: ['Bandierina sx', 0, hw], band_dx: ['Bandierina dx', 0, -hw]
+  };
+}
+function solve(A, b) {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    if (Math.abs(M[c][c]) < 1e-12) return null;
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+function normT(pts) {
+  const n = pts.length; let mx = 0, my = 0; pts.forEach(p => { mx += p[0]; my += p[1]; }); mx /= n; my /= n;
+  let d = 0; pts.forEach(p => d += Math.hypot(p[0] - mx, p[1] - my)); d = (d / n) || 1; const s = Math.SQRT2 / d;
+  return [[s, 0, -s * mx], [0, s, -s * my], [0, 0, 1]];
+}
+function mul(A, B) { return A.map((r, i) => B[0].map((_, j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j])); }
+function inv3(m) {
+  const [a, b, c] = m[0], [d, e, f] = m[1], [g, h, i] = m[2];
+  const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, det = a * A + b * B + c * C;
+  return [[A / det, -(b * i - c * h) / det, (b * f - c * e) / det], [B / det, (a * i - c * g) / det, -(a * f - c * d) / det], [C / det, -(a * h - b * g) / det, (a * e - b * d) / det]];
+}
+function app(H, x, y) { const w = H[2][0] * x + H[2][1] * y + H[2][2]; return [(H[0][0] * x + H[0][1] * y + H[0][2]) / w, (H[1][0] * x + H[1][1] * y + H[1][2]) / w]; }
+function homography(src, dst) {
+  if (src.length < 4) return null;
+  const Ts = normT(src), Td = normT(dst);
+  const s = src.map(p => app(Ts, p[0], p[1])), d = dst.map(p => app(Td, p[0], p[1]));
+  const AtA = Array.from({ length: 8 }, () => Array(8).fill(0)), Atb = Array(8).fill(0);
+  const add = (row, val) => { for (let i = 0; i < 8; i++) { Atb[i] += row[i] * val; for (let j = 0; j < 8; j++) AtA[i][j] += row[i] * row[j]; } };
+  for (let i = 0; i < s.length; i++) {
+    const [x, y] = s[i], [u, v] = d[i];
+    add([x, y, 1, 0, 0, 0, -u * x, -u * y], u); add([0, 0, 0, x, y, 1, -v * x, -v * y], v);
+  }
+  const h = solve(AtA, Atb); if (!h) return null;
+  const Hn = [[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], 1]];
+  return mul(inv3(Td), mul(Hn, Ts));
+}
+function localScale(Hi, X, Y) {
+  const a = app(Hi, X + .5, Y), b = app(Hi, X - .5, Y), c = app(Hi, X, Y + .5), d = app(Hi, X, Y - .5);
+  return Math.sqrt(Math.hypot(a[0] - b[0], a[1] - b[1]) * Math.hypot(c[0] - d[0], c[1] - d[1]));
+}
+function jit(p, sg) {
+  if (!sg) return p;
+  const g = () => { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  return [p[0] + sg * g(), p[1] + sg * g()];
+}
+function buildCams(frames, W, sg, fixed) {
+  const L = landmarks(W), cams = {};
+  frames.forEach(f => {
+    if (f.copyFrom && cams[f.copyFrom]) { const s = cams[f.copyFrom]; cams[f.id] = { ...s, ball: f.ball ? jit([f.ball.u, f.ball.v], sg) : null, ground: f.ground ? jit([f.ground.u, f.ground.v], sg) : null, shared: true }; return; }
+    const src = [], dst = [];
+    f.lm.forEach(l => { if (L[l.key]) { src.push(jit([l.u, l.v], sg)); dst.push([L[l.key][1], L[l.key][2]]); } });
+    const H = homography(src, dst); if (!H) return;
+    const Hi = inv3(H), ks = [], rr = [];
+    (f.refs || []).forEach(r => {
+      if (r.tu == null) return;
+      const b = jit([r.bu, r.bv], sg), t = jit([r.tu, r.tv], sg), g = app(H, b[0], b[1]);
+      ks.push(Math.hypot(t[0] - b[0], t[1] - b[1]) / r.m / localScale(Hi, g[0], g[1]));
+      rr.push({ X: g[0], Y: g[1], m: r.m, t });
+    });
+    let err = 0; src.forEach((p, i) => { const q = app(Hi, dst[i][0], dst[i][1]); err += (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; });
+    const pc = calibPinhole(Hi, (f.w || 0) / 2, (f.h || 0) / 2, rr);
+    const obsPts = src.map((p, i) => ({ u: p[0], v: p[1], X: dst[i][0], Y: dst[i][1], Z: 0 })).concat(rr.map(r => ({ u: r.t[0], v: r.t[1], X: r.X, Y: r.Y, Z: r.m })));
+    cams[f.id] = { H, Hi, pc, obsPts, k: ks.length ? ks.reduce((a, b) => a + b) / ks.length : null, rms: Math.sqrt(err / src.length), n: src.length,
+      ball: f.ball ? jit([f.ball.u, f.ball.v], sg) : null, ground: f.ground ? jit([f.ground.u, f.ground.v], sg) : null };
+  });
+  if (fixed) { const C = refineFixed(cams); if (C) { Object.defineProperty(cams, '_C', { value: C, enumerable: false }); frames.forEach(f => { if (f.copyFrom && cams[f.copyFrom] && cams[f.id]) cams[f.id].pc = cams[f.copyFrom].pc; }); } }
+  const ks = Object.values(cams).map(c => c.k).filter(k => k);
+  const kd = ks.length ? ks.reduce((a, b) => a + b) / ks.length : null;
+  Object.values(cams).forEach(c => { if (!c.k) { c.k = kd; c.kGuess = true; } });
+  return cams;
+}
+function poseF(A, f, cx, cy) {
+  const a1 = [A[0][0], A[1][0], A[2][0]], a2 = [A[0][1], A[1][1], A[2][1]], a3 = [A[0][2], A[1][2], A[2][2]];
+  const b = v => [v[0] / f, v[1] / f, v[2]], b1 = b(a1), b2 = b(a2), b3 = b(a3);
+  let lam = 2 / (Math.hypot(...b1) + Math.hypot(...b2)); if (b3[2] * lam < 0) lam = -lam;
+  const r1 = b1.map(x => x * lam), r2 = b2.map(x => x * lam), t = b3.map(x => x * lam);
+  let r3 = [r1[1] * r2[2] - r1[2] * r2[1], r1[2] * r2[0] - r1[0] * r2[2], r1[0] * r2[1] - r1[1] * r2[0]];
+  const n3 = Math.hypot(...r3); r3 = r3.map(x => x / n3);
+  const P = (X, Y, Z, R3) => { const x = r1[0] * X + r2[0] * Y + R3[0] * Z + t[0], y = r1[1] * X + r2[1] * Y + R3[1] * Z + t[1], z = r1[2] * X + r2[2] * Y + R3[2] * Z + t[2]; return [cx + f * x / z, cy + f * y / z]; };
+  if (P(10, 0, 1, r3)[1] > P(10, 0, 0, r3)[1]) r3 = r3.map(x => -x);
+  const ortho = Math.abs(r1[0] * r2[0] + r1[1] * r2[1] + r1[2] * r2[2]) + Math.abs(Math.hypot(...r1) - Math.hypot(...r2));
+  const R = [[r1[0], r2[0], r3[0]], [r1[1], r2[1], r3[1]], [r1[2], r2[2], r3[2]]];
+  const C = [0, 1, 2].map(j => -(R[0][j] * t[0] + R[1][j] * t[1] + R[2][j] * t[2]));
+  return { f, proj: (X, Y, Z) => P(X, Y, Z, r3), ortho, R, t, C, cx, cy };
+}
+function calibPinhole(Hp, cx, cy, refs) {
+  if (!cx) return null;
+  const A = mul([[1, 0, -cx], [0, 1, -cy], [0, 0, 1]], Hp);
+  const a1 = [A[0][0], A[1][0], A[2][0]], a2 = [A[0][1], A[1][1], A[2][1]];
+  const c = [a1[0] * a2[0] + a1[1] * a2[1], a1[0] ** 2 + a1[1] ** 2 - a2[0] ** 2 - a2[1] ** 2], d = [a1[2] * a2[2], a1[2] ** 2 - a2[2] ** 2];
+  const w = -(c[0] * d[0] + c[1] * d[1]) / (c[0] ** 2 + c[1] ** 2);
+  const f0 = w > 0 ? 1 / Math.sqrt(w) : null;
+  if (refs && refs.length) {
+    const cost = f => { const p = poseF(A, f, cx, cy); let e = 0; refs.forEach(r => { const q = p.proj(r.X, r.Y, r.m); e += (q[0] - r.t[0]) ** 2 + (q[1] - r.t[1]) ** 2; }); return e; };
+    let bf = null, be = Infinity;
+    for (let lf = Math.log(300); lf <= Math.log(20000); lf += 0.02) { const e = cost(Math.exp(lf)); if (e < be) { be = e; bf = Math.exp(lf); } }
+    let a = bf * 0.97, b = bf * 1.03;
+    for (let i = 0; i < 30; i++) { const x1 = b - .618 * (b - a), x2 = a + .618 * (b - a); if (cost(x1) < cost(x2)) b = x2; else a = x1; }
+    const p = poseF(A, (a + b) / 2, cx, cy); p.f0 = f0; p.byRefs = true; return p;
+  }
+  if (!f0) return null;
+  const p = poseF(A, f0, cx, cy); p.f0 = f0; return p;
+}
+function orthoR(R) {
+  const c0 = [R[0][0], R[1][0], R[2][0]], c1 = [R[0][1], R[1][1], R[2][1]];
+  const n0 = Math.hypot(...c0), a = c0.map(x => x / n0), d = a[0] * c1[0] + a[1] * c1[1] + a[2] * c1[2];
+  let b = c1.map((x, i) => x - d * a[i]); const n1 = Math.hypot(...b); b = b.map(x => x / n1);
+  const c = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const s = Math.sign(c[0] * R[0][2] + c[1] * R[1][2] + c[2] * R[2][2]) || 1;
+  return [[a[0], b[0], s * c[0]], [a[1], b[1], s * c[1]], [a[2], b[2], s * c[2]]];
+}
+function rotXYZ(a, b, c) {
+  const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cc = Math.cos(c), sc = Math.sin(c);
+  const X = [[1, 0, 0], [0, ca, -sa], [0, sa, ca]], Y = [[cb, 0, sb], [0, 1, 0], [-sb, 0, cb]], Z = [[cc, -sc, 0], [sc, cc, 0], [0, 0, 1]];
+  return mul(Z, mul(Y, X));
+}
+function camFromRC(R, C, f, cx, cy) {
+  const t = [0, 1, 2].map(i => -(R[i][0] * C[0] + R[i][1] * C[1] + R[i][2] * C[2]));
+  return { f, R, C, t, cx, cy, proj: (X, Y, Z) => { const x = R[0][0] * X + R[0][1] * Y + R[0][2] * Z + t[0], y = R[1][0] * X + R[1][1] * Y + R[1][2] * Z + t[1], z = R[2][0] * X + R[2][1] * Y + R[2][2] * Z + t[2]; return [cx + f * x / z, cy + f * y / z]; } };
+}
+function refineFixed(cams) {
+  const list = Object.values(cams).filter(c => c.pc && c.pc.C && !c.shared && c.obsPts && c.obsPts.length >= 4);
+  if (list.length < 2) return false;
+  const med = j => { const a = list.map(c => c.pc.C[j]).sort((x, y) => x - y); return a[a.length >> 1]; };
+  const C = [med(0), med(1), med(2)];
+  if (C[2] < 1) return false;
+  list.forEach(c => {
+    const R0 = orthoR(c.pc.R), f0 = c.pc.f;
+    const mk = p => camFromRC(mul(R0, rotXYZ(p[0], p[1], p[2])), C, f0 * Math.exp(p[3]), c.pc.cx, c.pc.cy);
+    const cost = p => { const k = mk(p); let e = 0; c.obsPts.forEach(o => { const q = k.proj(o.X, o.Y, o.Z); e += (q[0] - o.u) ** 2 + (q[1] - o.v) ** 2; }); return e; };
+    const r = nelder(cost, [0, 0, 0, 0], [.01, .01, .01, .05], 300);
+    const k = mk(r.x); k.byFixed = true; k.rmsFixed = Math.sqrt(r.f / c.obsPts.length); c.pc = k;
+  });
+  return C;
+}
+function proj(c, X, Y, Z) { if (c.pc && !globalThis.FORCEK) return c.pc.proj(X, Y, Z); const g = app(c.Hi, X, Y); return [g[0], g[1] - Z * c.k * localScale(c.Hi, X, Y)]; }
+function posAt(S, th, al, v, s) {
+  const ca = Math.cos(al);
+  return [S[0] + s * Math.cos(th), S[1] + s * Math.sin(th), S[2] + s * Math.tan(al) - G * s * s / (2 * v * v * ca * ca)];
+}
+function obsErr(c, o, P) {
+  const p = proj(c, P[0], P[1], P[2]); let e = (p[0] - o.b[0]) ** 2 + (p[1] - o.b[1]) ** 2;
+  if (o.g) { const q = proj(c, P[0], P[1], 0); e += (q[0] - o.g[0]) ** 2 + (q[1] - o.g[1]) ** 2; }
+  return e;
+}
+function bestS(c, o, S, th, al, v) {
+  let bs = 0, be = Infinity;
+  for (let s = 0; s <= 45; s += 0.75) { const e = obsErr(c, o, posAt(S, th, al, v, s)); if (e < be) { be = e; bs = s; } }
+  let a = Math.max(0, bs - .75), b = bs + .75; const r = 0.618;
+  for (let i = 0; i < 22; i++) {
+    const x1 = b - r * (b - a), x2 = a + r * (b - a);
+    if (obsErr(c, o, posAt(S, th, al, v, x1)) < obsErr(c, o, posAt(S, th, al, v, x2))) b = x2; else a = x1;
+  }
+  const s = (a + b) / 2; return [s, obsErr(c, o, posAt(S, th, al, v, s))];
+}
+function nelder(f, x0, step, it = 250) {
+  const n = x0.length; let P = [x0.slice()];
+  for (let i = 0; i < n; i++) { const x = x0.slice(); x[i] += step[i]; P.push(x); }
+  let F = P.map(f);
+  for (let k = 0; k < it; k++) {
+    const o = F.map((v, i) => i).sort((a, b) => F[a] - F[b]); P = o.map(i => P[i]); F = o.map(i => F[i]);
+    const c = Array(n).fill(0); for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) c[j] += P[i][j] / n;
+    const pt = t => c.map((v, j) => v + t * (P[n][j] - v));
+    const xr = pt(-1), fr = f(xr);
+    if (fr < F[0]) { const xe = pt(-2), fe = f(xe); if (fe < fr) { P[n] = xe; F[n] = fe; } else { P[n] = xr; F[n] = fr; } }
+    else if (fr < F[n - 1]) { P[n] = xr; F[n] = fr; }
+    else { const xc = pt(.5), fc = f(xc); if (fc < F[n]) { P[n] = xc; F[n] = fc; } else { for (let i = 1; i <= n; i++) { P[i] = P[i].map((v, j) => P[0][j] + .5 * (v - P[0][j])); F[i] = f(P[i]); } } }
+  }
+  const i = F.indexOf(Math.min(...F)); return { x: P[i], f: F[i] };
+}
+function fitSeg(cams, S0, obs, timed, vAss, init, anchor) {
+  const DEG = Math.PI / 180, nb = timed ? 3 : 2;
+  const cost = p => {
+    const th = p[0], al = p[1], v = timed ? p[2] : vAss;
+    const S = anchor ? [S0[0] + p[nb], S0[1] + p[nb + 1], Math.max(0, S0[2] + p[nb + 2])] : S0;
+    if (al < -10 * DEG || al > 60 * DEG || v < 4 || v > 45) return 1e12;
+    let e = anchor ? obsErr(cams[anchor.fid], anchor, S) : 0, last = 0;
+    obs.forEach(o => {
+      const c = cams[o.fid];
+      if (timed) e += obsErr(c, o, posAt(S, th, al, v, v * Math.cos(al) * o.t)); else { const r = bestS(c, o, S, th, al, v); e += r[1]; if (r[0] < last - 0.05) e += 400 * (last - r[0]) ** 2; last = r[0]; }
+    });
+    return e;
+  };
+  let best = null;
+  const starts = init ? [init, init.map((v, i) => i ? v : v + 0.35), init.map((v, i) => i ? v : v - 0.35)] : [];
+  if (!init) { const t0 = Math.atan2(-S0[1], -S0[0]); for (const dt of [-60, -30, 0, 30, 60]) for (const a of [3, 15, 30]) starts.push(timed ? [t0 + dt * DEG, a * DEG, 22] : [t0 + dt * DEG, a * DEG]); }
+  const st = timed ? [.1, .08, 3] : [.1, .08];
+  if (anchor) { st.push(.3, .3, .2); starts.forEach((x, i) => { if (x.length === nb) starts[i] = [...x, 0, 0, 0]; }); }
+  starts.forEach(x0 => { const r = nelder(cost, x0, st, (init ? 150 : 220) * (anchor ? 2 : 1)); if (!best || r.f < best.f) best = r; });
+  const th = best.x[0], al = best.x[1], v = timed ? best.x[2] : vAss;
+  const S = anchor ? [S0[0] + best.x[nb], S0[1] + best.x[nb + 1], Math.max(0, S0[2] + best.x[nb + 2])] : S0;
+  return { th, al, v, S, rms: Math.sqrt(best.f / Math.max(1, obs.length + (anchor ? 1 : 0))), x: best.x };
+}
+function crossing(S, th, al, v) {
+  const cx = Math.cos(th);
+  if (cx >= -1e-6) return { away: true };
+  const s = -S[0] / cx, P = posAt(S, th, al, v, s);
+  return { Y: P[1], Z: P[2], s, t: s / (v * Math.cos(al)) };
+}
+function classify(S, th, al, v) {
+  const tg = Math.atan2(-S[1], -S[0]), d = Math.abs(Math.atan2(Math.sin(th - tg), Math.cos(th - tg)));
+  const half = Math.abs(Math.atan2(POST - S[1], -S[0]) - Math.atan2(-POST - S[1], -S[0])) / 2;
+  const thr = Math.max(25 * Math.PI / 180, half + 10 * Math.PI / 180);
+  const cr = crossing(S, th, al, v);
+  if (!cr.away && Math.abs(cr.Y) <= POST + 1 && cr.Z <= BAR + 1) return 'tiro';
+  if (!cr.away && Math.abs(cr.Y) <= POST + 3) return 'tiro';
+  let zone = false; const sMax = cr.away ? 35 : Math.min(cr.s, 45);
+  for (let s = 4; s <= sMax; s += 0.25) { const P = posAt(S, th, al, v, s); if (P[0] >= 0 && P[0] <= 12 && Math.abs(P[1]) <= 9.16 && P[2] <= 2.6) { zone = true; break; } }
+  if (zone) return 'cross';
+  if (d <= thr) return 'tiro';
+  return 'altro';
+}
+function inTarget(c) { return !c.away && Math.abs(c.Y) <= POST && c.Z <= BAR; }
+function groundPoint(cam, uv) { return app(cam.H, uv[0], uv[1]); }
+function heightAbove(cam, gXY, b) {
+  if (cam.pc && !globalThis.FORCEK) { let lo = -2, hi = 30; const y0 = cam.pc.proj(gXY[0], gXY[1], 0)[1], dir = Math.sign(cam.pc.proj(gXY[0], gXY[1], 1)[1] - y0);
+    for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if ((cam.pc.proj(gXY[0], gXY[1], m)[1] - b[1]) * dir > 0) hi = m; else lo = m; } return (lo + hi) / 2; } const g = app(cam.Hi, gXY[0], gXY[1]); return (g[1] - b[1]) / (cam.k * localScale(cam.Hi, gXY[0], gXY[1])); }
+function analyze(frames, set, sg, base) {
+  const cams = buildCams(frames, set.W, sg, set.fixed), out = { cams, issues: [] };
+  const kick = frames.find(f => f.role === 'kick');
+  if (!kick || !cams[kick.id] || !cams[kick.id].ball) { out.issues.push('Serve un fotogramma "Calcio" calibrato con il pallone segnato.'); return out; }
+  const kc = cams[kick.id], k0 = groundPoint(kc, kc.ball);
+  out.S = [k0[0], k0[1], 0];
+  const tk = kick.t ?? null;
+  const mk = (f, t0) => ({ fid: f.id, b: cams[f.id].ball, g: cams[f.id].ground, t: (f.t != null && t0 != null) ? f.t - t0 : null });
+  const ok = f => cams[f.id] && cams[f.id].ball && (cams[f.id].pc || cams[f.id].k);
+  const pre = frames.filter(f => f.role === 'pre' && ok(f)).map(f => mk(f, tk));
+  const con = frames.find(f => f.role === 'contact' && ok(f));
+  const post = frames.filter(f => f.role === 'post' && ok(f));
+  let C = null;
+  if (con) {
+    const cc = cams[con.id], o = mk(con, tk);
+    if (cc.ground) { const g = groundPoint(cc, cc.ground); C = [g[0], g[1], Math.max(0, heightAbove(cc, g, cc.ball))]; o.g = cc.ground; }
+    pre.push(o); out.conObs = o;
+  }
+  const solveSeg = (S, obs, vAss, key, anchor) => {
+    if (!obs.length) return null;
+    const timed = obs.every(o => o.t != null && o.t > 0);
+    const n = obs.length, m = obs.filter(o => o.g).length;
+    const det = timed ? (2 * n + 2 * m >= 3) : (n + 2 * m >= 2);
+    const init = base && base[key] ? base[key].x : null;
+    const f = fitSeg(cams, S, obs, timed, vAss, init, anchor);
+    return { ...f, timed, det, cross: crossing(f.S, f.th, f.al, f.v) };
+  };
+  out.pre = solveSeg(out.S, pre, set.vPre, 'pre');
+  if (out.pre && !C && con) {
+    const o = out.conObs, c = cams[o.fid], p = out.pre;
+    const s = p.timed ? p.v * Math.cos(p.al) * o.t : bestS(c, o, out.S, p.th, p.al, p.v)[0];
+    C = posAt(out.S, p.th, p.al, p.v, s); out.Cguess = !out.pre.det;
+  }
+  out.C = C;
+  if (post.length) {
+    if (!C) out.issues.push('Per analizzare la deviazione segna un fotogramma "Momento della deviazione".');
+    else { const tc = con && con.t != null ? con.t : null; out.post = solveSeg(C, post.map(f => mk(f, tc)), set.vPost, 'post', { ...out.conObs, t: 0 }); out.C = out.post.S; }
+  }
+  return out;
+}
+function sweep(cams, S, obs, vAss) {
+  const res = [];
+  for (let Y = -8; Y <= 8.01; Y += 0.5) {
+    const th = Math.atan2(Y - S[1], -S[0]);
+    const r = nelder(p => obs.reduce((e, o) => e + bestS(cams[o.fid], o, S, th, p[0], vAss)[1], 0), [0.2], [0.1], 60);
+    const c = crossing(S, th, r.x[0], vAss); res.push({ aim: Y, al: r.x[0], Z: c.Z, err: Math.sqrt(r.f / obs.length) });
+  }
+  return res;
+}
+if (typeof module !== 'undefined') module.exports = { classify, landmarks, homography, app, inv3, localScale, buildCams, proj, posAt, analyze, crossing, inTarget, sweep, POST, BAR };
+
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const ROLES = { kick: 'Calcio (pallone sul piede)', pre: 'In volo, prima della deviazione', contact: 'Momento della deviazione', post: 'In volo, dopo la deviazione', ref: 'Solo riferimento' };
+let st = { frames: [] }, sel = null, tool = 'lm', lmKey = null, selPt = null, zoom = 1, refStage = 0, imgs = {};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const uid = () => Math.random().toString(36).slice(2, 9);
+function W() { return +$('pw').value || 68; }
+function save() {
+  try { localStorage.setItem('dentroofuori', JSON.stringify({ st, set: getSet() })); $('saveMsg').textContent = 'Salvato in questo browser.'; }
+  catch (e) { $('saveMsg').textContent = 'Il progetto è troppo grande per il salvataggio automatico: usa "Esporta progetto".'; }
+}
+function getSet() { return { W: W(), vPre: +$('vpre').value || 25, vPost: +$('vpost').value || 20, sg: +$('sg').value, runs: +$('runs').value || 100, fixed: $('fix').checked }; }
+function load(o) {
+  st = o.st || { frames: [] }; const s = o.set || {};
+  if (s.W) $('pw').value = s.W; if (s.vPre) $('vpre').value = s.vPre; if (s.vPost) $('vpost').value = s.vPost; if (s.sg != null) $('sg').value = s.sg; if (s.runs) $('runs').value = s.runs; if (s.fixed != null) $('fix').checked = s.fixed;
+  imgs = {}; st.frames.forEach(f => { const im = new Image(); im.onload = () => { if (sel === f.id) draw(); }; im.src = f.img; imgs[f.id] = im; });
+  sel = null; renderList(); $('ed').style.display = 'none';
+}
+try { const o = JSON.parse(localStorage.getItem('dentroofuori')); if (o) load(o); } catch (e) { }
+
+$('fileIn').onchange = async e => {
+  for (const file of e.target.files) {
+    const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+    const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = url; });
+    const sc = Math.min(1, 1920 / im.width), c = document.createElement('canvas');
+    c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    const f = { id: uid(), name: file.name.slice(0, 30), img: c.toDataURL('image/jpeg', 0.88), w: c.width, h: c.height, role: st.frames.length ? 'post' : 'kick', t: null, lm: [], refs: [], players: [], ball: null, ground: null };
+    const i2 = new Image(); i2.src = f.img; imgs[f.id] = i2; st.frames.push(f);
+  }
+  e.target.value = ''; renderList(); save(); if (!sel && st.frames.length) select(st.frames[0].id);
+};
+$('exp').onclick = () => {
+  const b = new Blob([JSON.stringify({ st, set: getSet() })], { type: 'application/json' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'dentro-o-fuori-progetto.json'; document.body.appendChild(a); a.click(); a.remove();
+};
+$('impIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { load(JSON.parse(await f.text())); save(); } catch (err) { $('saveMsg').textContent = 'File non valido.'; } e.target.value = ''; };
+$('clr').onclick = () => { const b = $('clr'); if (b.dataset.c) { st = { frames: [] }; imgs = {}; sel = null; $('ed').style.display = 'none'; $('out').innerHTML = ''; renderList(); save(); b.textContent = 'Nuovo'; delete b.dataset.c; } else { b.textContent = 'Tocca ancora per cancellare tutto'; b.dataset.c = 1; setTimeout(() => { b.textContent = 'Nuovo'; delete b.dataset.c; }, 3000); } };
+
+function status(f) {
+  const n = f.copyFrom ? 'copiata' : f.lm.length, c = [];
+  c.push(`<span class="chip ${f.copyFrom || f.lm.length >= 4 ? 'ok' : 'no'}">Campo ${f.copyFrom ? 'copiato' : n + (n >= 4 ? ' punti' : ' punti, ne servono 4')}</span>`);
+  if (f.role !== 'ref') c.push(`<span class="chip ${f.ball ? 'ok' : 'no'}">Pallone ${f.ball ? 'sì' : 'no'}</span>`);
+  if (f.ground) c.push('<span class="chip ok">Punto a terra</span>');
+  c.push(`<span class="chip ${f.refs.some(r => r.tu != null) || f.copyFrom ? 'ok' : ''}">Altezza ${f.refs.filter(r => r.tu != null).length}</span>`);
+  return c.join('');
+}
+function renderList() {
+  const L = $('flist'); L.innerHTML = '';
+  if (!st.frames.length) { L.innerHTML = '<p class="hint">Nessun fotogramma. Aggiungine almeno due: quello del calcio e uno con il pallone in volo.</p>'; return; }
+  st.frames.forEach((f, i) => {
+    const d = document.createElement('div'); d.className = 'fr' + (sel === f.id ? ' sel' : '');
+    d.innerHTML = `<img src="${f.img}" alt="Fotogramma ${i + 1}"><div>
+<div class="row" style="margin:0"><b style="font-weight:500">#${i + 1}</b>
+<select data-k="role">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${f.role === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+<div class="row" style="margin:6px 0 0"><label class="small">Tempo (s) <input type="number" step="0.01" data-k="t" value="${f.t ?? ''}" placeholder="facoltativo" style="width:100px"></label>
+<button data-a="ed">Segna punti</button><button data-a="up" aria-label="Sposta su">↑</button><button data-a="dn" aria-label="Sposta giù">↓</button><button data-a="rm" aria-label="Elimina">✕</button></div>
+<div class="chips">${status(f)}</div></div>`;
+    d.querySelector('[data-k=role]').onchange = e => { f.role = e.target.value; save(); };
+    d.querySelector('[data-k=t]').onchange = e => { f.t = e.target.value === '' ? null : +e.target.value; save(); };
+    d.querySelector('[data-a=ed]').onclick = () => select(f.id);
+    d.querySelector('[data-a=up]').onclick = () => { if (i) { st.frames.splice(i - 1, 0, st.frames.splice(i, 1)[0]); renderList(); save(); } };
+    d.querySelector('[data-a=dn]').onclick = () => { if (i < st.frames.length - 1) { st.frames.splice(i + 1, 0, st.frames.splice(i, 1)[0]); renderList(); save(); } };
+    d.querySelector('[data-a=rm]').onclick = () => { st.frames.splice(i, 1); st.frames.forEach(g => { if (g.copyFrom === f.id) g.copyFrom = null; }); if (sel === f.id) { sel = null; $('ed').style.display = 'none'; } renderList(); save(); };
+    L.appendChild(d);
+  });
+}
+const F = () => st.frames.find(f => f.id === sel);
+function select(id) { sel = id; selPt = null; refStage = 0; $('ed').style.display = ''; const i = st.frames.findIndex(f => f.id === id); $('edT').textContent = `2. Segna i punti – fotogramma #${i + 1}`; renderList(); setTool(tool); setZoom(zoom); $('ed').scrollIntoView({ behavior: 'smooth' }); }
+function nextLm() { const f = F(), L = landmarks(W()); const k = Object.keys(L).find(k => !f.lm.some(l => l.key === k)); return k || Object.keys(L)[0]; }
+function setTool(t) {
+  tool = t; refStage = 0;
+  document.querySelectorAll('#tools button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  const c = $('ctx'), f = F(), L = landmarks(W()); c.innerHTML = '';
+  const hints = { lm: 'Scegli il punto del campo, poi toccalo sull\'immagine. Usa punti sparsi, non tutti sulla stessa linea.', ball: 'Tocca il centro del pallone.', ground: 'Tocca il punto del prato esattamente sotto il pallone (l\'ombra, se è a mezzogiorno, o il piede del difensore al momento del tocco).', ref: 'Tocca prima la base (piedi o base del palo), poi la cima (testa o traversa).', pl: 'Scrivi il nome e tocca i piedi del giocatore. "Portiere" viene disegnato anche nella vista porta.' };
+  $('thint').textContent = hints[t];
+  if (t === 'lm') {
+    if (!lmKey || !L[lmKey]) lmKey = nextLm();
+    const s = document.createElement('select'); s.id = 'lmSel'; s.style.flex = '1';
+    s.innerHTML = Object.entries(L).map(([k, v]) => `<option value="${k}" ${k === lmKey ? 'selected' : ''}>${f.lm.some(l => l.key === k) ? '✓ ' : ''}${v[0]}</option>`).join('');
+    s.onchange = () => { lmKey = s.value; }; c.appendChild(s);
+  } else if (t === 'ref') { c.innerHTML = '<label class="small">Altezza reale (m) <input type="number" id="refM" value="1.80" step="0.01" style="width:90px"></label><button id="refBar">Palo-traversa 2,44</button><span class="small" id="refSt"></span>'; $('refBar').onclick = () => { $('refM').value = 2.44; }; }
+  else if (t === 'pl') { c.innerHTML = '<label class="small">Nome <input type="text" id="plN" value="Portiere" style="width:140px"></label>'; }
+  draw();
+}
+document.querySelectorAll('#tools button').forEach(b => b.onclick = () => setTool(b.dataset.t));
+function setZoom(z) { zoom = Math.max(1, Math.min(8, z)); $('zl').textContent = `Zoom ${zoom}×`; const f = F(); if (!f) return; const cv = $('cv'), w = $('wrap').clientWidth || 600; cv.style.width = (w * zoom) + 'px'; cv.style.height = (w * zoom * f.h / f.w) + 'px'; draw(); }
+$('zi').onclick = () => { const wr = $('wrap'), cx = (wr.scrollLeft + wr.clientWidth / 2) / zoom, cy = (wr.scrollTop + wr.clientHeight / 2) / zoom; setZoom(zoom * 2); wr.scrollLeft = cx * zoom - wr.clientWidth / 2; wr.scrollTop = cy * zoom - wr.clientHeight / 2; };
+$('zo').onclick = () => setZoom(zoom / 2);
+$('ovl').onchange = () => draw();
+window.addEventListener('resize', () => setZoom(zoom));
+$('cpy').onclick = () => {
+  const i = st.frames.findIndex(f => f.id === sel); if (i < 1) return; const f = F();
+  if (f.copyFrom) { f.copyFrom = null; } else { let s = st.frames[i - 1]; while (s.copyFrom) s = st.frames.find(g => g.id === s.copyFrom); f.copyFrom = s.id; }
+  renderList(); save(); draw();
+};
+$('cv').addEventListener('click', e => {
+  const f = F(); if (!f) return; const r = e.target.getBoundingClientRect();
+  const u = (e.clientX - r.left) / r.width * f.w, v = (e.clientY - r.top) / r.height * f.h;
+  if (tool === 'lm') {
+    if (f.copyFrom) { $('thint').textContent = 'Questo fotogramma usa la calibrazione del precedente: togli la copia per segnare punti nuovi.'; return; }
+    const k = $('lmSel').value; f.lm = f.lm.filter(l => l.key !== k); f.lm.push({ key: k, u, v }); selPt = { k: 'lm', key: k }; lmKey = nextLm(); setTool('lm');
+  } else if (tool === 'ball') { f.ball = { u, v }; selPt = { k: 'ball' }; }
+  else if (tool === 'ground') { f.ground = { u, v }; selPt = { k: 'ground' }; }
+  else if (tool === 'ref') {
+    if (refStage === 0) { f.refs.push({ bu: u, bv: v, tu: null, tv: null, m: +$('refM').value || 1.8 }); refStage = 1; selPt = { k: 'ref', i: f.refs.length - 1, e: 'b' }; $('refSt').textContent = 'Ora tocca la cima.'; }
+    else { const r = f.refs[f.refs.length - 1]; r.tu = u; r.tv = v; r.m = +$('refM').value || 1.8; refStage = 0; selPt = { k: 'ref', i: f.refs.length - 1, e: 't' }; $('refSt').textContent = 'Riferimento aggiunto.'; }
+  } else if (tool === 'pl') { f.players.push({ label: ($('plN').value || 'Giocatore').slice(0, 20), u, v }); selPt = { k: 'pl', i: f.players.length - 1 }; }
+  renderList(); save(); draw();
+});
+function ptRef(f, p) {
+  if (!p) return null;
+  if (p.k === 'lm') { const l = f.lm.find(l => l.key === p.key); return l ? [l, 'u', 'v'] : null; }
+  if (p.k === 'ball') return f.ball ? [f.ball, 'u', 'v'] : null;
+  if (p.k === 'ground') return f.ground ? [f.ground, 'u', 'v'] : null;
+  if (p.k === 'ref') { const r = f.refs[p.i]; return r ? [r, p.e === 'b' ? 'bu' : 'tu', p.e === 'b' ? 'bv' : 'tv'] : null; }
+  if (p.k === 'pl') { const r = f.players[p.i]; return r ? [r, 'u', 'v'] : null; }
+}
+document.querySelectorAll('.nud [data-d]').forEach(b => b.onclick = () => { const f = F(), r = ptRef(f, selPt); if (!r || r[0][r[1]] == null) return; const [dx, dy] = b.dataset.d.split(',').map(Number); r[0][r[1]] += dx; r[0][r[2]] += dy; save(); draw(); });
+$('del').onclick = () => {
+  const f = F(), p = selPt; if (!f || !p) return;
+  if (p.k === 'lm') f.lm = f.lm.filter(l => l.key !== p.key); else if (p.k === 'ball') f.ball = null; else if (p.k === 'ground') f.ground = null;
+  else if (p.k === 'ref') f.refs.splice(p.i, 1); else if (p.k === 'pl') f.players.splice(p.i, 1);
+  selPt = null; refStage = 0; renderList(); save(); setTool(tool);
+};
+function camOf(f) { try { return buildCams(st.frames.filter(g => g.id === f.id || g.id === f.copyFrom), W(), 0)[f.id]; } catch (e) { return null; } }
+function draw() {
+  const f = F(); if (!f) return; const cv = $('cv'), im = imgs[f.id];
+  cv.width = f.w; cv.height = f.h; const c = cv.getContext('2d'); if (im && im.complete) c.drawImage(im, 0, 0, f.w, f.h);
+  const lw = Math.max(1.5, f.w / 900) / Math.sqrt(zoom), rr = Math.max(5, f.w / 250) / Math.sqrt(zoom);
+  const cam = camOf(f), L = landmarks(W()), src = f.copyFrom ? st.frames.find(g => g.id === f.copyFrom) : f;
+  if (cam && $('ovl').checked) {
+    c.strokeStyle = 'rgba(255,230,0,.85)'; c.lineWidth = lw;
+    const line = (pts) => { c.beginPath(); pts.forEach((p, i) => { const q = proj(cam, p[0], p[1], p[2] || 0); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke(); };
+    const hw = W() / 2; line([[0, hw], [0, -hw]]);
+    [20.16, 9.16].forEach((y, i) => { const x = i ? 5.5 : 16.5; line([[0, y], [x, y], [x, -y], [0, -y]]); });
+    const arc = []; for (let a = -53.1; a <= 53.1; a += 4) arc.push([11 + 9.15 * Math.cos(a * Math.PI / 180), 9.15 * Math.sin(a * Math.PI / 180)]); line(arc);
+    line([[0, POST, 0], [0, POST, BAR], [0, -POST, BAR], [0, -POST, 0]]);
+    $('calInfo').textContent = `Calibrazione: ${cam.n} punti, errore medio ${cam.rms.toFixed(1)} px${cam.pc ? `, focale stimata ${Math.round(cam.pc.f)} px` : ''}${f.copyFrom ? ' (copiata dal fotogramma precedente)' : ''}. Le linee gialle devono coincidere con quelle vere.`;
+  } else $('calInfo').textContent = f.copyFrom ? 'Calibrazione copiata dal precedente.' : `Calibrazione: ${f.lm.length} punti su almeno 4 necessari.`;
+  const dot = (x, y, col, lab, on) => { c.fillStyle = col; c.strokeStyle = on ? '#fff' : '#000'; c.lineWidth = on ? lw * 2 : lw; c.beginPath(); c.arc(x, y, rr, 0, 7); c.fill(); c.stroke(); if (lab) { c.font = `${Math.round(rr * 2.4)}px system-ui`; c.lineWidth = lw * 2; c.strokeStyle = '#000'; c.strokeText(lab, x + rr * 1.4, y - rr); c.fillStyle = '#fff'; c.fillText(lab, x + rr * 1.4, y - rr); } };
+  const isSel = p => selPt && JSON.stringify(p) === JSON.stringify(selPt);
+  src.lm.forEach(l => dot(l.u, l.v, '#378ADD', L[l.key] ? L[l.key][0].replace(/ \(base\)/, '') : l.key, !f.copyFrom && isSel({ k: 'lm', key: l.key })));
+  f.refs.forEach((r, i) => { if (r.tu != null) { c.strokeStyle = '#97C459'; c.lineWidth = lw * 1.5; c.beginPath(); c.moveTo(r.bu, r.bv); c.lineTo(r.tu, r.tv); c.stroke(); dot(r.tu, r.tv, '#97C459', r.m + ' m', isSel({ k: 'ref', i, e: 't' })); } dot(r.bu, r.bv, '#97C459', '', isSel({ k: 'ref', i, e: 'b' })); });
+  f.players.forEach((p, i) => dot(p.u, p.v, '#EF9F27', p.label, isSel({ k: 'pl', i })));
+  if (f.ground) dot(f.ground.u, f.ground.v, '#D4537E', 'a terra', isSel({ k: 'ground' }));
+  if (f.ball) dot(f.ball.u, f.ball.v, '#D85A30', 'pallone', isSel({ k: 'ball' }));
+  const P = $('pts'); P.innerHTML = '';
+  const add = (lab, p) => { const b = document.createElement('button'); b.textContent = lab; if (isSel(p)) b.className = 'on'; b.onclick = () => { selPt = p; draw(); }; P.appendChild(b); };
+  if (!f.copyFrom) f.lm.forEach(l => add(L[l.key] ? L[l.key][0] : l.key, { k: 'lm', key: l.key }));
+  if (f.ball) add('Pallone', { k: 'ball' }); if (f.ground) add('Punto a terra', { k: 'ground' });
+  f.refs.forEach((r, i) => { add(`Altezza ${i + 1} base`, { k: 'ref', i, e: 'b' }); if (r.tu != null) add(`Altezza ${i + 1} cima`, { k: 'ref', i, e: 't' }); });
+  f.players.forEach((p, i) => add(p.label, { k: 'pl', i }));
+  const lp = $('lp').getContext('2d'); lp.fillStyle = '#000'; lp.fillRect(0, 0, 150, 150);
+  const r = ptRef(f, selPt);
+  if (r && r[0][r[1]] != null) { const x = r[0][r[1]], y = r[0][r[2]], s = 30; lp.imageSmoothingEnabled = false; if (im && im.complete) lp.drawImage(im, (x - s / 2) * im.naturalWidth / f.w, (y - s / 2) * im.naturalHeight / f.h, s * im.naturalWidth / f.w, s * im.naturalHeight / f.h, 0, 0, 150, 150); lp.strokeStyle = '#D85A30'; lp.beginPath(); lp.arc(75, 75, 6, 0, 7); lp.stroke(); lp.strokeStyle = '#fff'; lp.lineWidth = 1; lp.beginPath(); lp.moveTo(75, 60); lp.lineTo(75, 90); lp.moveTo(60, 75); lp.lineTo(90, 75); lp.stroke(); }
+}
+
+const q = (a, p) => { const b = a.slice().sort((x, y) => x - y); return b[Math.min(b.length - 1, Math.max(0, Math.round(p * (b.length - 1))))]; };
+const side = y => Math.abs(y) < 0.3 ? 'al centro' : (y > 0 ? `${y.toFixed(1)} m a sinistra` : `${(-y).toFixed(1)} m a destra`);
+const deg = r => r * 180 / Math.PI;
+function summ(list) {
+  const ok = list.filter(c => !c.away), n = list.length;
+  if (!ok.length) return { n, away: n, p: 0 };
+  const inT = list.filter(inTarget).length, wide = ok.filter(c => Math.abs(c.Y) > POST).length, over = ok.filter(c => Math.abs(c.Y) <= POST && c.Z > BAR).length;
+  return { n, p: inT / n, wide: wide / n, over: over / n, away: (n - ok.length) / n, Y: [q(ok.map(c => c.Y), .1), q(ok.map(c => c.Y), .5), q(ok.map(c => c.Y), .9)], Z: [q(ok.map(c => c.Z), .1), q(ok.map(c => c.Z), .5), q(ok.map(c => c.Z), .9)] };
+}
+function verdict(s) {
+  if (s.p >= 0.8) return ['v-ok', `Nello specchio (${Math.round(s.p * 100)}% delle simulazioni)`];
+  if (s.p <= 0.2) { const why = s.over > s.wide ? 'sopra la traversa' : (s.away > .5 ? 'si allontana dalla porta' : 'largo'); return ['v-ko', `Fuori, ${why} (${Math.round((1 - s.p) * 100)}% delle simulazioni)`]; }
+  return ['v-w', `Incerto: nello specchio nel ${Math.round(s.p * 100)}% delle simulazioni`];
+}
+$('run').onclick = async () => {
+  const set = getSet(); save(); const out = $('out'); out.innerHTML = '';
+  let base; try { base = analyze(st.frames, set, 0); } catch (e) { out.innerHTML = `<div class="verd v-ko">Errore nel calcolo: ${e.message}</div>`; return; }
+  const iss = base.issues.slice();
+  const cams = base.cams;
+  st.frames.forEach((f, i) => { const c = cams[f.id]; if (f.role === 'ref') return; if (!c) iss.push(`Fotogramma #${i + 1}: calibrazione mancante (servono almeno 4 punti del campo).`); else { if (c.rms > 6) iss.push(`Fotogramma #${i + 1}: calibrazione imprecisa (errore ${c.rms.toFixed(1)} px). Controlla che le linee gialle combacino.`); if (!c.pc && c.kGuess) iss.push(`Fotogramma #${i + 1}: senza riferimento di altezza, uso quello degli altri fotogrammi.`); if (!c.pc && !c.k) iss.push(`Fotogramma #${i + 1}: aggiungi un riferimento di altezza.`); } });
+  if (!base.pre && !base.post) { out.innerHTML = iss.map(t => `<div class="verd v-w">${t}</div>`).join('') + '<div class="verd v-ko">Servono almeno un fotogramma "Calcio" e uno con il pallone in volo, entrambi calibrati.</div>'; return; }
+  if (set.fixed && !cams._C && st.frames.filter(f => !f.copyFrom && f.lm.length >= 4).length >= 2) iss.push('Non sono riuscito a usare una telecamera unica: le calibrazioni dei fotogrammi non sono coerenti tra loro. Controlla i punti del campo o togli la spunta "Stessa telecamera".');
+  const runs = Math.max(10, set.runs), R = { pre: [], post: [], C: [], dth: [] };
+  $('pmsg').textContent = 'Calcolo in corso…';
+  for (let i = 0; i < runs; i++) {
+    try { const r = analyze(st.frames, set, set.sg, base); if (r.pre) R.pre.push({ ...r.pre.cross, v: r.pre.v, al: r.pre.al, th: r.pre.th, cls: classify(r.pre.S, r.pre.th, r.pre.al, r.pre.v) }); if (r.post) { R.post.push({ ...r.post.cross, v: r.post.v, al: r.post.al, th: r.post.th }); R.C.push(r.C); if (r.pre) R.dth.push(deg(Math.atan2(Math.sin(r.post.th - r.pre.th), Math.cos(r.post.th - r.pre.th)))); } } catch (e) { }
+    if (i % 4 === 0) { $('pbar').style.width = (100 * i / runs) + '%'; await new Promise(r => setTimeout(r, 0)); }
+  }
+  $('pbar').style.width = '100%'; $('pmsg').textContent = `Fatto: ${runs} simulazioni.`;
+  let h = iss.map(t => `<div class="verd v-w">${t}</div>`).join('');
+  const segCard = (title, b, list) => {
+    if (!b) return '';
+    const s = summ(list), [cl, tx] = verdict(s), med = b.cross;
+    let x = `<div class="card"><h3>${title}</h3>`;
+    if (!b.det) x += `<div class="verd v-w">Dati insufficienti: con questi fotogrammi la direzione non è determinabile. Il risultato sotto è solo una delle soluzioni possibili.</div>`;
+    x += `<div class="verd ${cl}">${tx}</div>`;
+    if (s.Y) x += `<p class="small" style="margin:4px 0">Arrivo sulla linea di porta (80% delle simulazioni): da ${side(s.Y[0])} a ${side(s.Y[2])}, altezza ${Math.max(0, s.Z[0]).toFixed(1)}–${Math.max(0, s.Z[2]).toFixed(1)} m. </p>`;
+    if (!med.away) x += `<p class="small" style="margin:4px 0">Stima migliore (tocchi così come sono): ${side(med.Y)}, ${med.Z < 0 ? 'rasoterra' : med.Z.toFixed(1) + ' m'} – ${inTarget(med) ? 'nello specchio' : 'fuori'}. Se questa stima e la percentuale non vanno d'accordo, il risultato dipende da pochi pixel: migliora la calibrazione o aggiungi fotogrammi.</p>`; else x += `<p class="small">Stima migliore: il pallone si allontana dalla porta.</p>`;
+    x += `<p class="small" style="margin:4px 0">Alzo ${deg(b.al).toFixed(0)}°${b.timed ? `, velocità ${Math.round(b.v * 3.6)} km/h` : `, velocità ipotizzata ${Math.round(b.v * 3.6)} km/h (mancano i tempi)`}. Scarto medio dei tocchi: ${b.rms.toFixed(1)} px.</p></div>`;
+    return x;
+  };
+  h += '<div class="grid2" style="margin-top:10px">' + segCard(base.post ? 'Tiro originale (prima della deviazione)' : 'Tiro', base.pre, R.pre) + segCard('Dopo la deviazione', base.post, R.post) + '</div>';
+  if (base.pre && R.pre.length) {
+    const n = R.pre.length, pc = k => R.pre.filter(p => p.cls === k).length / n, t = pc('tiro'), x = pc('cross'), o = pc('altro');
+    const bc = classify(base.pre.S, base.pre.th, base.pre.al, base.pre.v), lab = { tiro: 'tiro', cross: 'cross', altro: 'né tiro né cross (spazzata o rinvio)' };
+    const top = t >= x && t >= o ? 'tiro' : (x >= o ? 'cross' : 'altro'), pTop = Math.max(t, x, o);
+    h += `<div class="card" style="margin-top:10px"><h3>Tiro o cross?</h3><div class="verd ${pTop >= .7 ? (top === 'tiro' ? 'v-ok' : 'v-w') : 'v-w'}">${pTop >= .7 ? 'Più probabile: ' + lab[top] : 'Non si capisce con sicurezza'} · tiro ${Math.round(t * 100)}% · cross ${Math.round(x * 100)}%${o > .05 ? ' · altro ' + Math.round(o * 100) + '%' : ''}</div><p class="small" style="margin:4px 0">Si basa sulla traiettoria ${base.post ? 'prima della deviazione' : ''}: è un tiro se va verso la porta, un cross se si allontana dalla porta e attraversa l'area piccola o la zona davanti a essa a un'altezza raggiungibile. Stima migliore: ${lab[bc]}. L'intenzione di chi calcia nessun programma la può vedere.</p></div>`;
+  }
+  if (base.pre && (base.post || st.frames.some(f => f.role === 'contact'))) {
+    const a = summ(R.pre), p = a.p, cls = R.pre.length ? R.pre.filter(x => x.cls === 'cross').length / R.pre.length : 0;
+    let cl, tx, why;
+    if (!base.pre.det) { cl = 'v-w'; tx = 'Gol all\'attaccante (per dubbio)'; why = 'La direzione del tiro originale non è determinabile con questi fotogrammi: c\'è dubbio sulla destinazione, e in caso di dubbio la Lega assegna il gol a chi ha tirato.'; }
+    else if (p >= 0.8) { cl = 'v-ok'; tx = 'Gol all\'attaccante'; why = `Il tiro originale finiva nello specchio nel ${Math.round(p * 100)}% delle simulazioni.`; }
+    else if (p > 0.2) { cl = 'v-w'; tx = 'Gol all\'attaccante (per dubbio)'; why = `Il tiro originale finiva nello specchio nel ${Math.round(p * 100)}% delle simulazioni: c'è dubbio sulla destinazione, e in caso di dubbio la Lega assegna il gol a chi ha tirato.`; }
+    else { cl = 'v-ko'; tx = 'Probabile autogol'; why = `Il ${cls > .5 ? 'cross' : 'tiro'} originale finiva fuori dallo specchio nel ${Math.round((1 - p) * 100)}% delle simulazioni: se la deviazione l'ha mandato in rete, la Lega lo considera autogol.`; }
+    h += `<div class="card" style="margin-top:10px"><h3>Criterio Lega Serie A: gol o autogol?</h3><div class="verd ${cl}">${tx}</div><p class="small" style="margin:4px 0">${why}</p><p class="small" style="margin:4px 0">Vale se la deviazione è di un avversario ed è fortuita o istintiva. Se il difensore fa una giocata attiva (spazzare, allontanare), è autogol comunque; se devia un compagno di squadra valgono regole diverse. Questi aspetti li valuti tu guardando l'azione. È un'indicazione: la decisione ufficiale è della Lega.</p></div>`;
+  }
+  if (base.pre && base.post) {
+    const a = summ(R.pre), b = summ(R.post), dt = R.dth.length ? q(R.dth, .5) : 0;
+    const ca = base.pre.cross, cb = base.post.cross, shift = (!ca.away && !cb.away) ? Math.hypot(cb.Y - ca.Y, Math.max(0, cb.Z) - Math.max(0, ca.Z)) : null;
+    let inc = 'Ha cambiato poco l\'esito.';
+    if (a.p < .5 && b.p >= .5) inc = 'Ha trasformato un tiro probabilmente fuori in un pallone nello specchio.';
+    else if (a.p >= .5 && b.p < .5) inc = 'Ha tolto dallo specchio un tiro che probabilmente ci andava.';
+    if (!base.pre.det) inc = 'Non si può dire quanto abbia inciso: la direzione del tiro originale non è determinabile con questi fotogrammi.';
+    h += `<div class="card" style="margin-top:10px"><h3>La deviazione</h3><p class="small" style="margin:4px 0">Cambio di direzione: ${Math.abs(dt).toFixed(0)}° (valore centrale). ${shift != null ? `Spostamento del punto d'arrivo (stima migliore): circa ${shift.toFixed(1)} m.` : ''}</p><div class="verd ${base.pre.det ? 'v-w' : 'v-ko'}">${inc}</div><p class="small" style="margin:4px 0">Nello specchio senza deviazione: ${Math.round(a.p * 100)}% · dopo la deviazione: ${Math.round(b.p * 100)}%.</p></div>`;
+  }
+  if (base.pre && !base.pre.det) {
+    const obs = []; st.frames.forEach(f => { const c = cams[f.id]; if (c && c.ball && (f.role === 'pre' || f.role === 'contact')) obs.push({ fid: f.id, b: c.ball, g: c.ground }); });
+    if (obs.length) {
+      const sw = sweep(cams, base.S, obs, set.vPre).filter(r => r.err < 6);
+      if (sw.length) {
+        const inside = sw.filter(r => Math.abs(r.aim) <= POST && r.Z <= BAR);
+        h += `<div class="card" style="margin-top:10px"><h3>Tiro originale: tutte le mire compatibili</h3><p class="small">Con un solo fotogramma ogni mira è compatibile con i tocchi, ma richiede un alzo diverso. Velocità ipotizzata ${set.vPre} m/s.</p><table><tr><th>Mira</th><th>Alzo</th><th>Altezza in porta</th><th>Esito</th></tr>${sw.filter((r, i) => i % 2 === 0).map(r => `<tr><td>${side(r.aim)}</td><td>${deg(r.al).toFixed(0)}°</td><td>${r.Z < 0 ? 'rasoterra' : r.Z.toFixed(1) + ' m'}</td><td>${Math.abs(r.aim) <= POST && r.Z <= BAR ? 'specchio' : 'fuori'}</td></tr>`).join('')}</table><div class="verd ${inside.length ? 'v-w' : 'v-ko'}">${inside.length ? `Esistono mire compatibili che finiscono nello specchio: i fotogrammi non escludono il tiro in porta.` : 'Nessuna mira compatibile finisce nello specchio: il tiro era fuori qualunque fosse la direzione.'}</div></div>`;
+      }
+    }
+  }
+  h += '<canvas class="res" id="rTop" width="720" height="440"></canvas><canvas class="res" id="rGoal" width="720" height="330"></canvas><p class="small">Punti grigi: tiro originale. Punti arancioni: dopo la deviazione. Ogni punto è una simulazione.</p>';
+  out.innerHTML = h; drawRes(base, R);
+};
+function drawRes(base, R) {
+  const c = $('rTop').getContext('2d'), Wc = 720, Hc = 440; c.clearRect(0, 0, Wc, Hc);
+  const xs = [base.S[1], 3.66, -3.66], ys = [base.S[0], 0]; if (base.C) { xs.push(base.C[1]); ys.push(base.C[0]); }
+  const Ymax = Math.max(22, ...xs.map(Math.abs)) + 2, Xmax = Math.max(20, ...ys) + 2;
+  const sc = Math.min((Wc - 40) / (2 * Ymax), (Hc - 50) / Xmax), px = Y => Wc / 2 - Y * sc, py = X => 30 + X * sc;
+  c.strokeStyle = css('--mut'); c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(10, py(0)); c.lineTo(Wc - 10, py(0)); c.stroke();
+  c.strokeRect(px(20.16), py(0), 2 * 20.16 * sc, 16.5 * sc); c.strokeRect(px(9.16), py(0), 2 * 9.16 * sc, 5.5 * sc);
+  c.strokeStyle = '#E24B4A'; c.lineWidth = 6; c.beginPath(); c.moveTo(px(POST), py(0)); c.lineTo(px(-POST), py(0)); c.stroke();
+  const tr = (S, b, col, dash) => { if (!b) return; const s = b.cross.away ? 25 : b.cross.s; c.strokeStyle = col; c.lineWidth = 3; c.setLineDash(dash ? [10, 7] : []); c.beginPath(); c.moveTo(px(S[1]), py(S[0])); c.lineTo(px(S[1] + s * Math.sin(b.th)), py(S[0] + s * Math.cos(b.th))); c.stroke(); c.setLineDash([]); };
+  tr(base.S, base.pre, '#888780', true); if (base.post) tr(base.post.S, base.post, '#D85A30', false);
+  const dot = (X, Y, col, r, lab) => { c.fillStyle = col; c.beginPath(); c.arc(px(Y), py(X), r, 0, 7); c.fill(); if (lab) { c.fillStyle = css('--tx2'); c.font = '20px system-ui'; c.fillText(lab, px(Y) + r + 4, py(X) + 6); } };
+  R.pre.forEach(p => { if (!p.away) dot(0, p.Y, 'rgba(136,135,128,.45)', 3); }); R.post.forEach(p => { if (!p.away) dot(0, p.Y, 'rgba(216,90,48,.5)', 3); });
+  dot(base.S[0], base.S[1], '#993556', 9, 'calcio'); if (base.C) dot(base.C[0], base.C[1], '#378ADD', 8, 'deviazione');
+  const lastPl = {}; st.frames.forEach(f => { const cm = base.cams[f.id]; if (!cm) return; f.players.forEach(p => { const g = app(cm.H, p.u, p.v); lastPl[p.label] = g; }); });
+  Object.entries(lastPl).forEach(([n, g]) => dot(g[0], g[1], '#EF9F27', 7, n));
+  c.fillStyle = css('--tx2'); c.font = '20px system-ui'; c.fillText('Vista dall\'alto', 14, Hc - 12); c.fillText('sx', px(POST) - 34, 22); c.fillText('dx', px(-POST) + 8, 22);
+  const g = $('rGoal').getContext('2d'), GH = 330; g.clearRect(0, 0, 720, GH);
+  const all = [...R.pre, ...R.post].filter(p => !p.away);
+  const zTop = Math.min(12, Math.max(3.2, ...all.map(p => p.Z + .4))), K = Math.min(640 / 14, (GH - 60) / zTop);
+  const gx = Y => 360 - Y * K, gz = Z => GH - 30 - Z * K;
+  g.strokeStyle = css('--mut'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, gz(0)); g.lineTo(720, gz(0)); g.stroke();
+  g.strokeStyle = css('--tx'); g.lineWidth = 6; g.beginPath(); g.moveTo(gx(POST), gz(0)); g.lineTo(gx(POST), gz(BAR)); g.lineTo(gx(-POST), gz(BAR)); g.lineTo(gx(-POST), gz(0)); g.stroke();
+  const gk = Object.entries(lastPl).find(([n]) => /portier|gk|keeper/i.test(n));
+  if (gk) { const x = gx(gk[1][1]), b = gz(0); g.fillStyle = '#EF9F27'; g.beginPath(); g.arc(x, b - 1.75 * K, .12 * K, 0, 7); g.fill(); g.fillRect(x - .22 * K, b - 1.6 * K, .44 * K, .75 * K); g.fillRect(x - .2 * K, b - .85 * K, .14 * K, .85 * K); g.fillRect(x + .06 * K, b - .85 * K, .14 * K, .85 * K); g.fillRect(x - .6 * K, b - 1.55 * K, .38 * K, .1 * K); g.fillRect(x + .22 * K, b - 1.55 * K, .38 * K, .1 * K); }
+  const gd = (p, col) => { if (p.away) return; g.fillStyle = col; g.beginPath(); g.arc(gx(Math.max(-7, Math.min(7, p.Y))), gz(Math.max(0, Math.min(zTop, p.Z))), 4, 0, 7); g.fill(); };
+  R.pre.forEach(p => gd(p, 'rgba(136,135,128,.5)')); R.post.forEach(p => gd(p, 'rgba(216,90,48,.55)'));
+  g.fillStyle = css('--tx2'); g.font = '20px system-ui'; g.fillText('Vista porta, da chi tira (punti fuori scala sul bordo)', 14, 24); g.fillText('sx', gx(POST) - 34, gz(0) - 8); g.fillText('dx', gx(-POST) + 10, gz(0) - 8);
+}
+renderList();
+</script>
+</body>
+</html>
