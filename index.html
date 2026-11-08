@@ -67,7 +67,8 @@ ol{padding-left:20px;margin:6px 0} li{margin:3px 0}
 <li>Carica i fotogrammi in ordine di tempo (screenshot dal video, meglio se a schermo intero).</li>
 <li>Per ogni fotogramma scegli il ruolo: il calcio, il pallone in volo, il momento della deviazione, il pallone dopo la deviazione.</li>
 <li>Se conosci i tempi (es. avanzando fotogramma per fotogramma: a 25 fps ogni fotogramma è 0,04 s), scrivili: rendono il calcolo molto più preciso.</li>
-<li>Calibra il campo: tocca almeno 4 punti noti (meglio 6 o più, sparsi): pali, angoli delle aree, dischetto, bandierina. Sinistra e destra sono quelle di chi attacca verso quella porta.</li>
+<li>Calibra il campo con "Punto campo" (pali, angoli delle aree, dischetto, bandierina) e con "Linea": se un angolo è fuori dall'inquadratura o coperto, tocca 2–3 punti qualsiasi lungo le linee che vedi (linea di fondo, lati e linea frontale delle aree, lunetta). Servono linee in entrambe le direzioni: almeno due "parallele alla porta" e due "perpendicolari", oppure qualche punto noto. Sinistra e destra sono quelle di chi attacca verso quella porta.</li>
+<li>Non segnare un angolo che non vedi: un punto messo sul bordo dello schermo al posto dell'angolo vero falsa tutta la calibrazione. Meglio usare la linea.</li>
 <li>Aggiungi un riferimento di altezza: tocca i piedi e poi la testa di un giocatore (altezza nota) o la base di un palo e la traversa (2,44 m).</li>
 <li>Tocca il pallone. Se vedi l'ombra o il punto a terra sotto il pallone, segnalo: è il dato più prezioso.</li>
 <li>Premi "Calcola". Il risultato ripete il calcolo molte volte spostando i tuoi tocchi di qualche pixel: così vedi quanto è affidabile.</li>
@@ -91,7 +92,7 @@ ol{padding-left:20px;margin:6px 0} li{margin:3px 0}
 <section id="ed" style="display:none">
 <h2 id="edT">2. Segna i punti</h2>
 <div class="tools" id="tools">
-<button data-t="lm">Campo</button><button data-t="ball">Pallone</button><button data-t="ground">Punto a terra</button><button data-t="ref">Altezza</button><button data-t="pl">Giocatore</button>
+<button data-t="lm">Punto campo</button><button data-t="ln">Linea</button><button data-t="ball">Pallone</button><button data-t="ground">Punto a terra</button><button data-t="ref">Altezza</button><button data-t="pl">Giocatore</button>
 </div>
 <div class="row" id="ctx"></div>
 <p class="hint" id="thint"></p>
@@ -188,13 +189,75 @@ function jit(p, sg) {
   const g = () => { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
   return [p[0] + sg * g(), p[1] + sg * g()];
 }
+function fieldLines(W) {
+  const hw = W / 2;
+  return {
+    fondo: ['Linea di fondo', [1, 0, 0]],
+    ag_front: ['Area grande, linea frontale', [1, 0, -16.5]],
+    ag_sx: ['Area grande, lato sx', [0, 1, -20.16]], ag_dx: ['Area grande, lato dx', [0, 1, 20.16]],
+    ap_front: ['Area piccola, linea frontale', [1, 0, -5.5]],
+    ap_sx: ['Area piccola, lato sx', [0, 1, -9.16]], ap_dx: ['Area piccola, lato dx', [0, 1, 9.16]],
+    lat_sx: ['Linea laterale sx', [0, 1, -hw]], lat_dx: ['Linea laterale dx', [0, 1, hw]],
+    lunetta: ['Lunetta (arco)', null, [11, 0, 9.15]]
+  };
+}
+function eigSym(A) {
+  const n = A.length, a = A.map(r => r.slice()), V = a.map((r, i) => r.map((_, j) => i === j ? 1 : 0));
+  for (let sw = 0; sw < 60; sw++) {
+    let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2;
+    if (off < 1e-22) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+      if (Math.abs(a[p][q]) < 1e-300) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++) { const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++) { const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++) { const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; }
+    }
+  }
+  let mi = 0; for (let i = 1; i < n; i++) if (a[i][i] < a[mi][mi]) mi = i;
+  return V.map(r => r[mi]);
+}
+function calibFrame(f, W, sg) {
+  const L = landmarks(W), FL = fieldLines(W), pts = [], lns = [];
+  f.lm.forEach(l => { if (L[l.key]) pts.push({ p: jit([l.u, l.v], sg), P: [L[l.key][1], L[l.key][2]] }); });
+  (f.ln || []).forEach(l => { if (FL[l.key]) lns.push({ p: jit([l.u, l.v], sg), L: FL[l.key][1], C: FL[l.key][2] }); });
+  const lin = lns.filter(l => l.L), keys = new Set((f.ln || []).filter(l => FL[l.key] && FL[l.key][1]).map(l => l.key));
+  const fam = k => (f.ln || []).filter(l => FL[l.key] && FL[l.key][1] && (k ? FL[l.key][1][0] !== 0 : FL[l.key][1][1] !== 0)).map(l => l.key);
+  const xl = new Set(fam(1)).size, yl = new Set(fam(0)).size;
+  if (2 * pts.length + lin.length < 9 || pts.length + keys.size < 4 || xl + pts.length < 2 || yl + pts.length < 2) return null;
+  const imgAll = pts.map(x => x.p).concat(lns.map(x => x.p));
+  const Ts = normT(imgAll), Td = normT(pts.length >= 2 ? pts.map(x => x.P) : [[0, 0], [16.5, 20], [16.5, -20], [5, 0]]);
+  const TdiT = inv3(Td).map((r, i) => r.map((_, j) => inv3(Td)[j][i]));
+  const A = Array.from({ length: 9 }, () => Array(9).fill(0)), addRow = r => { for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) A[i][j] += r[i] * r[j]; };
+  pts.forEach(x => { const [a, b] = app(Ts, x.p[0], x.p[1]), [u, v] = app(Td, x.P[0], x.P[1]); addRow([a, b, 1, 0, 0, 0, -u * a, -u * b, -u]); addRow([0, 0, 0, a, b, 1, -v * a, -v * b, -v]); });
+  lin.forEach(x => {
+    const [a, b] = app(Ts, x.p[0], x.p[1]), l = [0, 1, 2].map(i => TdiT[i][0] * x.L[0] + TdiT[i][1] * x.L[1] + TdiT[i][2] * x.L[2]);
+    const nn = Math.hypot(l[0], l[1]) || 1; const [la, lb, lc] = l.map(v => v / nn);
+    addRow([la * a, la * b, la, lb * a, lb * b, lb, lc * a, lc * b, lc]);
+  });
+  const h = eigSym(A);
+  const toH = h => mul(inv3(Td), mul([[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], h[8]]], Ts));
+  const resid = H => {
+    const Hi = inv3(H); let e = 0;
+    pts.forEach(x => { const q = app(Hi, x.P[0], x.P[1]); e += (q[0] - x.p[0]) ** 2 + (q[1] - x.p[1]) ** 2; });
+    lns.forEach(x => {
+      const P = app(H, x.p[0], x.p[1]); let d;
+      if (x.L) d = (x.L[0] * P[0] + x.L[1] * P[1] + x.L[2]) / Math.hypot(x.L[0], x.L[1]); else d = Math.hypot(P[0] - x.C[0], P[1] - x.C[1]) - x.C[2];
+      const s = localScale(Hi, P[0], P[1]); e += (d * s) ** 2;
+    });
+    return e;
+  };
+  const hn = h.map(v => v / (Math.hypot(...h) || 1));
+  const r = nelder(p => { const H = toH(p); return isFinite(H[2][2]) ? resid(H) : 1e12; }, hn, hn.map(() => 0.004), 900);
+  const H = toH(r.x), n = pts.length + lns.length;
+  return { H, Hi: inv3(H), rms: Math.sqrt(r.f / n), n, pts, lns };
+}
 function buildCams(frames, W, sg, fixed) {
   const L = landmarks(W), cams = {};
   frames.forEach(f => {
     if (f.copyFrom && cams[f.copyFrom]) { const s = cams[f.copyFrom]; cams[f.id] = { ...s, ball: f.ball ? jit([f.ball.u, f.ball.v], sg) : null, ground: f.ground ? jit([f.ground.u, f.ground.v], sg) : null, shared: true }; return; }
-    const src = [], dst = [];
-    f.lm.forEach(l => { if (L[l.key]) { src.push(jit([l.u, l.v], sg)); dst.push([L[l.key][1], L[l.key][2]]); } });
-    const H = homography(src, dst); if (!H) return;
+    const cf = calibFrame(f, W, sg); if (!cf) return;
+    const src = cf.pts.map(x => x.p), dst = cf.pts.map(x => x.P), H = cf.H;
     const Hi = inv3(H), ks = [], rr = [];
     (f.refs || []).forEach(r => {
       if (r.tu == null) return;
@@ -202,10 +265,10 @@ function buildCams(frames, W, sg, fixed) {
       ks.push(Math.hypot(t[0] - b[0], t[1] - b[1]) / r.m / localScale(Hi, g[0], g[1]));
       rr.push({ X: g[0], Y: g[1], m: r.m, t });
     });
-    let err = 0; src.forEach((p, i) => { const q = app(Hi, dst[i][0], dst[i][1]); err += (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; });
     const pc = calibPinhole(Hi, (f.w || 0) / 2, (f.h || 0) / 2, rr);
     const obsPts = src.map((p, i) => ({ u: p[0], v: p[1], X: dst[i][0], Y: dst[i][1], Z: 0 })).concat(rr.map(r => ({ u: r.t[0], v: r.t[1], X: r.X, Y: r.Y, Z: r.m })));
-    cams[f.id] = { H, Hi, pc, obsPts, k: ks.length ? ks.reduce((a, b) => a + b) / ks.length : null, rms: Math.sqrt(err / src.length), n: src.length,
+    const lnObs = cf.lns.map(x => ({ u: x.p[0], v: x.p[1], L: x.L, C: x.C }));
+    cams[f.id] = { H, Hi, pc, obsPts, lnObs, k: ks.length ? ks.reduce((a, b) => a + b) / ks.length : null, rms: cf.rms, n: cf.n,
       ball: f.ball ? jit([f.ball.u, f.ball.v], sg) : null, ground: f.ground ? jit([f.ground.u, f.ground.v], sg) : null };
   });
   if (fixed) { const C = refineFixed(cams); if (C) { Object.defineProperty(cams, '_C', { value: C, enumerable: false }); frames.forEach(f => { if (f.copyFrom && cams[f.copyFrom] && cams[f.id]) cams[f.id].pc = cams[f.copyFrom].pc; }); } }
@@ -263,8 +326,9 @@ function camFromRC(R, C, f, cx, cy) {
   const t = [0, 1, 2].map(i => -(R[i][0] * C[0] + R[i][1] * C[1] + R[i][2] * C[2]));
   return { f, R, C, t, cx, cy, proj: (X, Y, Z) => { const x = R[0][0] * X + R[0][1] * Y + R[0][2] * Z + t[0], y = R[1][0] * X + R[1][1] * Y + R[1][2] * Z + t[1], z = R[2][0] * X + R[2][1] * Y + R[2][2] * Z + t[2]; return [cx + f * x / z, cy + f * y / z]; } };
 }
+function groundH(k) { const R = k.R, t = k.t; return mul([[k.f, 0, k.cx], [0, k.f, k.cy], [0, 0, 1]], [[R[0][0], R[0][1], t[0]], [R[1][0], R[1][1], t[1]], [R[2][0], R[2][1], t[2]]]); }
 function refineFixed(cams) {
-  const list = Object.values(cams).filter(c => c.pc && c.pc.C && !c.shared && c.obsPts && c.obsPts.length >= 4);
+  const list = Object.values(cams).filter(c => c.pc && c.pc.C && !c.shared && c.obsPts && c.obsPts.length + (c.lnObs ? c.lnObs.length / 2 : 0) >= 4);
   if (list.length < 2) return false;
   const med = j => { const a = list.map(c => c.pc.C[j]).sort((x, y) => x - y); return a[a.length >> 1]; };
   const C = [med(0), med(1), med(2)];
@@ -272,7 +336,9 @@ function refineFixed(cams) {
   list.forEach(c => {
     const R0 = orthoR(c.pc.R), f0 = c.pc.f;
     const mk = p => camFromRC(mul(R0, rotXYZ(p[0], p[1], p[2])), C, f0 * Math.exp(p[3]), c.pc.cx, c.pc.cy);
-    const cost = p => { const k = mk(p); let e = 0; c.obsPts.forEach(o => { const q = k.proj(o.X, o.Y, o.Z); e += (q[0] - o.u) ** 2 + (q[1] - o.v) ** 2; }); return e; };
+    const cost = p => { const k = mk(p); let e = 0; c.obsPts.forEach(o => { const q = k.proj(o.X, o.Y, o.Z); e += (q[0] - o.u) ** 2 + (q[1] - o.v) ** 2; });
+      if (c.lnObs && c.lnObs.length) { const Hg = groundH(k), Hgi = inv3(Hg); c.lnObs.forEach(o => { const P = app(Hgi, o.u, o.v); const d = o.L ? (o.L[0] * P[0] + o.L[1] * P[1] + o.L[2]) / Math.hypot(o.L[0], o.L[1]) : Math.hypot(P[0] - o.C[0], P[1] - o.C[1]) - o.C[2]; e += (d * localScale(Hg, P[0], P[1])) ** 2; }); }
+      return e; };
     const r = nelder(cost, [0, 0, 0, 0], [.01, .01, .01, .05], 300);
     const k = mk(r.x); k.byFixed = true; k.rmsFixed = Math.sqrt(r.f / c.obsPts.length); c.pc = k;
   });
@@ -409,13 +475,13 @@ function sweep(cams, S, obs, vAss) {
   }
   return res;
 }
-if (typeof module !== 'undefined') module.exports = { classify, landmarks, homography, app, inv3, localScale, buildCams, proj, posAt, analyze, crossing, inTarget, sweep, POST, BAR };
+if (typeof module !== 'undefined') module.exports = { fieldLines, calibFrame, classify, landmarks, homography, app, inv3, localScale, buildCams, proj, posAt, analyze, crossing, inTarget, sweep, POST, BAR };
 
 </script>
 <script>
 const $ = id => document.getElementById(id);
 const ROLES = { kick: 'Calcio (pallone sul piede)', pre: 'In volo, prima della deviazione', contact: 'Momento della deviazione', post: 'In volo, dopo la deviazione', ref: 'Solo riferimento' };
-let st = { frames: [] }, sel = null, tool = 'lm', lmKey = null, selPt = null, zoom = 1, refStage = 0, imgs = {};
+let st = { frames: [] }, sel = null, tool = 'lm', lmKey = null, lnKey = 'fondo', selPt = null, zoom = 1, refStage = 0, imgs = {};
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const uid = () => Math.random().toString(36).slice(2, 9);
 function W() { return +$('pw').value || 68; }
@@ -438,7 +504,7 @@ $('fileIn').onchange = async e => {
     const im = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = url; });
     const sc = Math.min(1, 1920 / im.width), c = document.createElement('canvas');
     c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    const f = { id: uid(), name: file.name.slice(0, 30), img: c.toDataURL('image/jpeg', 0.88), w: c.width, h: c.height, role: st.frames.length ? 'post' : 'kick', t: null, lm: [], refs: [], players: [], ball: null, ground: null };
+    const f = { id: uid(), name: file.name.slice(0, 30), img: c.toDataURL('image/jpeg', 0.88), w: c.width, h: c.height, role: st.frames.length ? 'post' : 'kick', t: null, lm: [], ln: [], refs: [], players: [], ball: null, ground: null };
     const i2 = new Image(); i2.src = f.img; imgs[f.id] = i2; st.frames.push(f);
   }
   e.target.value = ''; renderList(); save(); if (!sel && st.frames.length) select(st.frames[0].id);
@@ -451,13 +517,14 @@ $('impIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; 
 $('clr').onclick = () => { const b = $('clr'); if (b.dataset.c) { st = { frames: [] }; imgs = {}; sel = null; $('ed').style.display = 'none'; $('out').innerHTML = ''; renderList(); save(); b.textContent = 'Nuovo'; delete b.dataset.c; } else { b.textContent = 'Tocca ancora per cancellare tutto'; b.dataset.c = 1; setTimeout(() => { b.textContent = 'Nuovo'; delete b.dataset.c; }, 3000); } };
 
 function status(f) {
-  const n = f.copyFrom ? 'copiata' : f.lm.length, c = [];
-  c.push(`<span class="chip ${f.copyFrom || f.lm.length >= 4 ? 'ok' : 'no'}">Campo ${f.copyFrom ? 'copiato' : n + (n >= 4 ? ' punti' : ' punti, ne servono 4')}</span>`);
+  const c = [], ok = f.copyFrom || calOk(f), nl = (f.ln || []).length;
+  c.push(`<span class="chip ${ok ? 'ok' : 'no'}">Campo ${f.copyFrom ? 'copiato' : (ok ? 'calibrato' : 'da calibrare')} · ${f.lm.length} punti${nl ? ', ' + nl + ' su linee' : ''}</span>`);
   if (f.role !== 'ref') c.push(`<span class="chip ${f.ball ? 'ok' : 'no'}">Pallone ${f.ball ? 'sì' : 'no'}</span>`);
   if (f.ground) c.push('<span class="chip ok">Punto a terra</span>');
   c.push(`<span class="chip ${f.refs.some(r => r.tu != null) || f.copyFrom ? 'ok' : ''}">Altezza ${f.refs.filter(r => r.tu != null).length}</span>`);
   return c.join('');
 }
+function calOk(f) { try { return !!calibFrame(f, W(), 0); } catch (e) { return false; } }
 function renderList() {
   const L = $('flist'); L.innerHTML = '';
   if (!st.frames.length) { L.innerHTML = '<p class="hint">Nessun fotogramma. Aggiungine almeno due: quello del calcio e uno con il pallone in volo.</p>'; return; }
@@ -485,13 +552,17 @@ function setTool(t) {
   tool = t; refStage = 0;
   document.querySelectorAll('#tools button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   const c = $('ctx'), f = F(), L = landmarks(W()); c.innerHTML = '';
-  const hints = { lm: 'Scegli il punto del campo, poi toccalo sull\'immagine. Usa punti sparsi, non tutti sulla stessa linea.', ball: 'Tocca il centro del pallone.', ground: 'Tocca il punto del prato esattamente sotto il pallone (l\'ombra, se è a mezzogiorno, o il piede del difensore al momento del tocco).', ref: 'Tocca prima la base (piedi o base del palo), poi la cima (testa o traversa).', pl: 'Scrivi il nome e tocca i piedi del giocatore. "Portiere" viene disegnato anche nella vista porta.' };
+  const hints = { lm: 'Scegli il punto del campo, poi toccalo sull\'immagine. Usa punti sparsi, non tutti sulla stessa linea.', ball: 'Tocca il centro del pallone.', ground: 'Tocca il punto del prato esattamente sotto il pallone (l\'ombra, se è a mezzogiorno, o il piede del difensore al momento del tocco).', ref: 'Tocca prima la base (piedi o base del palo), poi la cima (testa o traversa).', ln: 'Scegli la linea e tocca 2–3 punti qualsiasi lungo di essa, distanti tra loro. Utile quando gli angoli sono fuori dall\'inquadratura o coperti dai giocatori.', pl: 'Scrivi il nome e tocca i piedi del giocatore. "Portiere" viene disegnato anche nella vista porta.' };
   $('thint').textContent = hints[t];
   if (t === 'lm') {
     if (!lmKey || !L[lmKey]) lmKey = nextLm();
     const s = document.createElement('select'); s.id = 'lmSel'; s.style.flex = '1';
     s.innerHTML = Object.entries(L).map(([k, v]) => `<option value="${k}" ${k === lmKey ? 'selected' : ''}>${f.lm.some(l => l.key === k) ? '✓ ' : ''}${v[0]}</option>`).join('');
     s.onchange = () => { lmKey = s.value; }; c.appendChild(s);
+  } else if (t === 'ln') {
+    const FL = fieldLines(W()), s = document.createElement('select'); s.id = 'lnSel'; s.style.flex = '1';
+    s.innerHTML = Object.entries(FL).map(([k, v]) => { const n = (f.ln || []).filter(l => l.key === k).length; return `<option value="${k}" ${k === lnKey ? 'selected' : ''}>${n ? n + '× ' : ''}${v[0]}</option>`; }).join('');
+    s.onchange = () => { lnKey = s.value; }; c.appendChild(s);
   } else if (t === 'ref') { c.innerHTML = '<label class="small">Altezza reale (m) <input type="number" id="refM" value="1.80" step="0.01" style="width:90px"></label><button id="refBar">Palo-traversa 2,44</button><span class="small" id="refSt"></span>'; $('refBar').onclick = () => { $('refM').value = 2.44; }; }
   else if (t === 'pl') { c.innerHTML = '<label class="small">Nome <input type="text" id="plN" value="Portiere" style="width:140px"></label>'; }
   draw();
@@ -513,6 +584,9 @@ $('cv').addEventListener('click', e => {
   if (tool === 'lm') {
     if (f.copyFrom) { $('thint').textContent = 'Questo fotogramma usa la calibrazione del precedente: togli la copia per segnare punti nuovi.'; return; }
     const k = $('lmSel').value; f.lm = f.lm.filter(l => l.key !== k); f.lm.push({ key: k, u, v }); selPt = { k: 'lm', key: k }; lmKey = nextLm(); setTool('lm');
+  } else if (tool === 'ln') {
+    if (f.copyFrom) { $('thint').textContent = 'Questo fotogramma usa la calibrazione del precedente: togli la copia per segnare punti nuovi.'; return; }
+    f.ln = f.ln || []; lnKey = $('lnSel').value; f.ln.push({ key: lnKey, u, v }); selPt = { k: 'ln', i: f.ln.length - 1 }; setTool('ln');
   } else if (tool === 'ball') { f.ball = { u, v }; selPt = { k: 'ball' }; }
   else if (tool === 'ground') { f.ground = { u, v }; selPt = { k: 'ground' }; }
   else if (tool === 'ref') {
@@ -524,6 +598,7 @@ $('cv').addEventListener('click', e => {
 function ptRef(f, p) {
   if (!p) return null;
   if (p.k === 'lm') { const l = f.lm.find(l => l.key === p.key); return l ? [l, 'u', 'v'] : null; }
+  if (p.k === 'ln') { const l = (f.ln || [])[p.i]; return l ? [l, 'u', 'v'] : null; }
   if (p.k === 'ball') return f.ball ? [f.ball, 'u', 'v'] : null;
   if (p.k === 'ground') return f.ground ? [f.ground, 'u', 'v'] : null;
   if (p.k === 'ref') { const r = f.refs[p.i]; return r ? [r, p.e === 'b' ? 'bu' : 'tu', p.e === 'b' ? 'bv' : 'tv'] : null; }
@@ -532,7 +607,7 @@ function ptRef(f, p) {
 document.querySelectorAll('.nud [data-d]').forEach(b => b.onclick = () => { const f = F(), r = ptRef(f, selPt); if (!r || r[0][r[1]] == null) return; const [dx, dy] = b.dataset.d.split(',').map(Number); r[0][r[1]] += dx; r[0][r[2]] += dy; save(); draw(); });
 $('del').onclick = () => {
   const f = F(), p = selPt; if (!f || !p) return;
-  if (p.k === 'lm') f.lm = f.lm.filter(l => l.key !== p.key); else if (p.k === 'ball') f.ball = null; else if (p.k === 'ground') f.ground = null;
+  if (p.k === 'lm') f.lm = f.lm.filter(l => l.key !== p.key); else if (p.k === 'ln') f.ln.splice(p.i, 1); else if (p.k === 'ball') f.ball = null; else if (p.k === 'ground') f.ground = null;
   else if (p.k === 'ref') f.refs.splice(p.i, 1); else if (p.k === 'pl') f.players.splice(p.i, 1);
   selPt = null; refStage = 0; renderList(); save(); setTool(tool);
 };
@@ -550,10 +625,11 @@ function draw() {
     const arc = []; for (let a = -53.1; a <= 53.1; a += 4) arc.push([11 + 9.15 * Math.cos(a * Math.PI / 180), 9.15 * Math.sin(a * Math.PI / 180)]); line(arc);
     line([[0, POST, 0], [0, POST, BAR], [0, -POST, BAR], [0, -POST, 0]]);
     $('calInfo').textContent = `Calibrazione: ${cam.n} punti, errore medio ${cam.rms.toFixed(1)} px${cam.pc ? `, focale stimata ${Math.round(cam.pc.f)} px` : ''}${f.copyFrom ? ' (copiata dal fotogramma precedente)' : ''}. Le linee gialle devono coincidere con quelle vere.`;
-  } else $('calInfo').textContent = f.copyFrom ? 'Calibrazione copiata dal precedente.' : `Calibrazione: ${f.lm.length} punti su almeno 4 necessari.`;
+  } else $('calInfo').textContent = f.copyFrom ? 'Calibrazione copiata dal precedente.' : `Calibrazione non ancora possibile: servono almeno 4 elementi tra punti noti e linee (con 2–3 tocchi per linea), in entrambe le direzioni del campo.`;
   const dot = (x, y, col, lab, on) => { c.fillStyle = col; c.strokeStyle = on ? '#fff' : '#000'; c.lineWidth = on ? lw * 2 : lw; c.beginPath(); c.arc(x, y, rr, 0, 7); c.fill(); c.stroke(); if (lab) { c.font = `${Math.round(rr * 2.4)}px system-ui`; c.lineWidth = lw * 2; c.strokeStyle = '#000'; c.strokeText(lab, x + rr * 1.4, y - rr); c.fillStyle = '#fff'; c.fillText(lab, x + rr * 1.4, y - rr); } };
   const isSel = p => selPt && JSON.stringify(p) === JSON.stringify(selPt);
   src.lm.forEach(l => dot(l.u, l.v, '#378ADD', L[l.key] ? L[l.key][0].replace(/ \(base\)/, '') : l.key, !f.copyFrom && isSel({ k: 'lm', key: l.key })));
+  const FLd = fieldLines(W()); (src.ln || []).forEach((l, i) => dot(l.u, l.v, '#1D9E75', FLd[l.key] ? FLd[l.key][0].replace('Area grande', 'AG').replace('Area piccola', 'AP') : l.key, !f.copyFrom && isSel({ k: 'ln', i })));
   f.refs.forEach((r, i) => { if (r.tu != null) { c.strokeStyle = '#97C459'; c.lineWidth = lw * 1.5; c.beginPath(); c.moveTo(r.bu, r.bv); c.lineTo(r.tu, r.tv); c.stroke(); dot(r.tu, r.tv, '#97C459', r.m + ' m', isSel({ k: 'ref', i, e: 't' })); } dot(r.bu, r.bv, '#97C459', '', isSel({ k: 'ref', i, e: 'b' })); });
   f.players.forEach((p, i) => dot(p.u, p.v, '#EF9F27', p.label, isSel({ k: 'pl', i })));
   if (f.ground) dot(f.ground.u, f.ground.v, '#D4537E', 'a terra', isSel({ k: 'ground' }));
@@ -561,6 +637,7 @@ function draw() {
   const P = $('pts'); P.innerHTML = '';
   const add = (lab, p) => { const b = document.createElement('button'); b.textContent = lab; if (isSel(p)) b.className = 'on'; b.onclick = () => { selPt = p; draw(); }; P.appendChild(b); };
   if (!f.copyFrom) f.lm.forEach(l => add(L[l.key] ? L[l.key][0] : l.key, { k: 'lm', key: l.key }));
+  if (!f.copyFrom) (f.ln || []).forEach((l, i) => add((FLd[l.key] ? FLd[l.key][0] : l.key) + ' ·' + (i + 1), { k: 'ln', i }));
   if (f.ball) add('Pallone', { k: 'ball' }); if (f.ground) add('Punto a terra', { k: 'ground' });
   f.refs.forEach((r, i) => { add(`Altezza ${i + 1} base`, { k: 'ref', i, e: 'b' }); if (r.tu != null) add(`Altezza ${i + 1} cima`, { k: 'ref', i, e: 't' }); });
   f.players.forEach((p, i) => add(p.label, { k: 'pl', i }));
@@ -588,9 +665,9 @@ $('run').onclick = async () => {
   let base; try { base = analyze(st.frames, set, 0); } catch (e) { out.innerHTML = `<div class="verd v-ko">Errore nel calcolo: ${e.message}</div>`; return; }
   const iss = base.issues.slice();
   const cams = base.cams;
-  st.frames.forEach((f, i) => { const c = cams[f.id]; if (f.role === 'ref') return; if (!c) iss.push(`Fotogramma #${i + 1}: calibrazione mancante (servono almeno 4 punti del campo).`); else { if (c.rms > 6) iss.push(`Fotogramma #${i + 1}: calibrazione imprecisa (errore ${c.rms.toFixed(1)} px). Controlla che le linee gialle combacino.`); if (!c.pc && c.kGuess) iss.push(`Fotogramma #${i + 1}: senza riferimento di altezza, uso quello degli altri fotogrammi.`); if (!c.pc && !c.k) iss.push(`Fotogramma #${i + 1}: aggiungi un riferimento di altezza.`); } });
+  st.frames.forEach((f, i) => { const c = cams[f.id]; if (f.role === 'ref') return; if (!c) iss.push(`Fotogramma #${i + 1}: calibrazione mancante: aggiungi punti noti o punti sulle linee del campo.`); else { if (c.rms > 6) iss.push(`Fotogramma #${i + 1}: calibrazione imprecisa (errore ${c.rms.toFixed(1)} px). Controlla che le linee gialle combacino.`); if (!c.pc && c.kGuess) iss.push(`Fotogramma #${i + 1}: senza riferimento di altezza, uso quello degli altri fotogrammi.`); if (!c.pc && !c.k) iss.push(`Fotogramma #${i + 1}: aggiungi un riferimento di altezza.`); } });
   if (!base.pre && !base.post) { out.innerHTML = iss.map(t => `<div class="verd v-w">${t}</div>`).join('') + '<div class="verd v-ko">Servono almeno un fotogramma "Calcio" e uno con il pallone in volo, entrambi calibrati.</div>'; return; }
-  if (set.fixed && !cams._C && st.frames.filter(f => !f.copyFrom && f.lm.length >= 4).length >= 2) iss.push('Non sono riuscito a usare una telecamera unica: le calibrazioni dei fotogrammi non sono coerenti tra loro. Controlla i punti del campo o togli la spunta "Stessa telecamera".');
+  if (set.fixed && !cams._C && st.frames.filter(f => !f.copyFrom && calOk(f)).length >= 2) iss.push('Non sono riuscito a usare una telecamera unica: le calibrazioni dei fotogrammi non sono coerenti tra loro. Controlla i punti del campo o togli la spunta "Stessa telecamera".');
   const runs = Math.max(10, set.runs), R = { pre: [], post: [], C: [], dth: [] };
   $('pmsg').textContent = 'Calcolo in corso…';
   for (let i = 0; i < runs; i++) {

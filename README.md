@@ -13,7 +13,7 @@ Tutto gira nel browser: nessun server, nessun dato inviato altrove. I progetti s
 
 ## Come funziona
 
-- **Calibrazione:** dai punti noti del campo (pali, angoli delle aree, dischetto, bandierine) calcola la corrispondenza immagine ↔ campo e stima la telecamera (focale e posizione). Il riferimento di altezza (giocatore o palo-traversa) rende più precisa la stima.
+- **Calibrazione:** dai punti noti del campo (pali, angoli delle aree, dischetto, bandierine) e dai punti toccati lungo le linee (linea di fondo, lati e linea frontale delle aree, linee laterali, lunetta) calcola la corrispondenza immagine ↔ campo e stima la telecamera. Le linee servono quando un angolo è fuori dall'inquadratura o coperto. Il riferimento di altezza (giocatore o palo-traversa) rende più precisa la stima.
 - **Traiettoria:** modello balistico senza attrito né effetto. Con i tempi dei fotogrammi stima anche la velocità; senza tempi usa la velocità ipotizzata.
 - **Deviazione:** il fotogramma "Momento della deviazione" separa il tiro originale dalla traiettoria dopo il tocco. Lo strumento confronta dove sarebbe arrivato il tiro senza deviazione e dove arriva dopo.
 - **Incertezza:** ripete il calcolo molte volte spostando a caso tutti i tocchi di qualche pixel. La percentuale "nello specchio" dice quanto il verdetto regge ai piccoli errori.
